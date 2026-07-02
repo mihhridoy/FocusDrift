@@ -1,5 +1,6 @@
 package com.radonshadow.focusdrift.ui.screens.onboarding
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -28,9 +32,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.google.accompanist.pager.HorizontalPager
-import com.google.accompanist.pager.PagerState
-import com.google.accompanist.pager.rememberPagerState
 import com.radonshadow.focusdrift.core.extensions.clickableNoRipple
 import com.radonshadow.focusdrift.ui.components.FocusOrb
 import com.radonshadow.focusdrift.ui.components.FocusOrbState
@@ -53,12 +54,13 @@ private val SLIDES = listOf(
     OnboardingSlide(AmberReward, "Every session\nearns you something.", "Streaks, XP, focus coins, and level-ups. Your dopamine system finally has something to work with.")
 )
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OnboardingScreen(
     onFinished: () -> Unit,
     viewModel: OnboardingViewModel = hiltViewModel()
 ) {
-    val pagerState = rememberPagerState()
+    val pagerState = rememberPagerState(pageCount = { SLIDES.size })
     val scope = rememberCoroutineScope()
 
     Column(modifier = Modifier.fillMaxSize().background(Background)) {
@@ -78,7 +80,6 @@ fun OnboardingScreen(
         }
 
         HorizontalPager(
-            count = SLIDES.size,
             state = pagerState,
             modifier = Modifier.weight(1f).fillMaxWidth()
         ) { page ->
@@ -116,6 +117,7 @@ fun OnboardingScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PagerDots(pagerState: PagerState, colors: List<androidx.compose.ui.graphics.Color>) {
     Row(

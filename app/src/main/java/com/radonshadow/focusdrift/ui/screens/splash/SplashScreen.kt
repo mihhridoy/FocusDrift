@@ -23,8 +23,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -100,7 +103,7 @@ fun SplashScreen(
     }
 }
 
-private fun buildAnnotatedFocusDrift() = androidx.compose.ui.text.buildAnnotatedString {
+private fun buildAnnotatedFocusDrift() = buildAnnotatedString {
     append("Focus")
-    withStyle(androidx.compose.ui.text.SpanStyle(color = IndigoPrimary)) { append("Drift") }
+    withStyle(SpanStyle(color = IndigoPrimary)) { append("Drift") }
 }

@@ -67,6 +67,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.animation)
     implementation(libs.androidx.navigation.compose)
 
@@ -98,8 +99,6 @@ dependencies {
     implementation(libs.billing.ktx)
 
     implementation(libs.lottie.compose)
-
-    implementation(libs.accompanist.pager)
 
     testImplementation(libs.junit)
     testImplementation(libs.mockito.kotlin)

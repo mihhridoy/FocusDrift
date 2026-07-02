@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -178,7 +177,7 @@ private fun GoalCard(sessionsToday: Int, dailyGoal: Int, onStartFocus: () -> Uni
         Column {
             Text("TODAY'S FOCUS GOAL", color = TextSecondary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.LastBaseline) {
+            Row(verticalAlignment = Alignment.Bottom) {
                 Text("$sessionsToday", color = TextPrimary, fontFamily = com.radonshadow.focusdrift.ui.theme.DmMono, fontSize = 44.sp, fontWeight = FontWeight.Medium)
                 Text(" / $dailyGoal sessions", color = TextSecondary, fontFamily = com.radonshadow.focusdrift.ui.theme.DmMono, fontSize = 24.sp)
             }

@@ -5,10 +5,11 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.drawOutline
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -28,8 +29,15 @@ fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier = this.then(
 fun Modifier.dashedBorder(color: Color, shape: Shape, width: Dp = 1.5.dp): Modifier = this.then(
     Modifier.drawBehind {
         val outline = shape.createOutline(size, layoutDirection, this)
-        drawOutline(
-            outline = outline,
+        val path = Path().apply {
+            when (outline) {
+                is Outline.Rectangle -> addRect(outline.rect)
+                is Outline.Rounded -> addRoundRect(outline.roundRect)
+                is Outline.Generic -> addPath(outline.path)
+            }
+        }
+        drawPath(
+            path = path,
             color = color,
             style = Stroke(
                 width = width.toPx(),

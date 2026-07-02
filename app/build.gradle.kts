@@ -22,7 +22,10 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
+            // Temporarily disabled to isolate whether R8 shrinking is behind the crash-on-launch
+            // report on the first real device install. Re-enable once confirmed safe, with the
+            // keep rules in proguard-rules.pro in place.
+            isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         debug {

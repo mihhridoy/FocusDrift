@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "000000000000",
-    "project_id": "focusdrift-placeholder",
-    "storage_bucket": "focusdrift-placeholder.appspot.com"
+    "project_number": "106907906830",
+    "project_id": "focusdrift-58df1",
+    "storage_bucket": "focusdrift-58df1.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+        "mobilesdk_app_id": "1:106907906830:android:71b08f6f2ca3db7c95dd5f",
         "android_client_info": {
           "package_name": "com.radonshadow.focusdrift"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "REPLACE_WITH_REAL_FIREBASE_API_KEY"
+          "current_key": "AIzaSyBRSI4_Nv2AknB_vvyM0uMhyg5DFK8bYUA"
         }
       ],
       "services": {

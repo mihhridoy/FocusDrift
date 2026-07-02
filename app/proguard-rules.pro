@@ -1,0 +1,3 @@
+-keepattributes *Annotation*
+-keep class com.radonshadow.focusdrift.data.remote.dto.** { *; }
+-keep class com.radonshadow.focusdrift.data.local.database.entity.** { *; }

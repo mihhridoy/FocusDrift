@@ -1,0 +1,54 @@
+{
+  "items": [
+    {
+      "id": "orb_dark_matter",
+      "name": "Dark Matter",
+      "category": "ORB_SKINS",
+      "description": "A deep space orb pulsing with dark energy",
+      "cost_coins": 200,
+      "preview_color": "#1A1A2E",
+      "glow_color": "#E040FB"
+    },
+    {
+      "id": "orb_solar_flare",
+      "name": "Solar Flare",
+      "category": "ORB_SKINS",
+      "description": "Burning with the energy of a thousand focus sessions",
+      "cost_coins": 350,
+      "preview_color": "#FF6D00",
+      "glow_color": "#FFAB40"
+    },
+    {
+      "id": "sound_forest_rain",
+      "name": "Forest Rain",
+      "category": "SOUNDS",
+      "description": "Rain on leaves. Nature's white noise.",
+      "cost_coins": 150
+    },
+    {
+      "id": "sound_lofi_beats",
+      "name": "Lo-fi Study Beats",
+      "category": "SOUNDS",
+      "description": "Chill background music scientifically selected for focus",
+      "cost_coins": 200
+    },
+    {
+      "id": "theme_sunset",
+      "name": "Sunset Focus",
+      "category": "THEMES",
+      "description": "Warm amber and rose tones for evening sessions",
+      "cost_coins": 300,
+      "primary_color": "#FF6B6B",
+      "accent_color": "#F4A732"
+    },
+    {
+      "id": "theme_ocean",
+      "name": "Ocean Deep",
+      "category": "THEMES",
+      "description": "Cool blues and teals for a calm, deep focus",
+      "cost_coins": 300,
+      "primary_color": "#0077B6",
+      "accent_color": "#4ECDC4"
+    }
+  ]
+}

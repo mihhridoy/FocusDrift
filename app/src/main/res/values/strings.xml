@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FocusDrift</string>
+    <string name="notification_channel_timer">Focus Timer</string>
+    <string name="notification_channel_timer_desc">Shows the running focus/break countdown</string>
+    <string name="notification_channel_habit">Habit Reminders</string>
+    <string name="notification_channel_habit_desc">Reminds you about habits before your streak resets</string>
+</resources>

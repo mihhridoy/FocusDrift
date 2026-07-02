@@ -2,6 +2,10 @@ name: Build signed APK & AAB
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+      - claude/new-session-9h26z5
 
 jobs:
   build:
@@ -25,6 +29,10 @@ jobs:
           alias: ${{ secrets.KEY_ALIAS }}
           keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
+        env:
+          # The action defaults to build-tools 29.0.3, which no longer exists
+          # on ubuntu-latest runners. Pin to a version the runner image ships.
+          BUILD_TOOLS_VERSION: "34.0.0"
 
       - name: Sign AAB
         id: sign_aab
@@ -35,6 +43,8 @@ jobs:
           alias: ${{ secrets.KEY_ALIAS }}
           keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: "34.0.0"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

@@ -14,6 +14,7 @@ import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.api.acknowledgePurchase
 import com.android.billingclient.api.queryProductDetails
 import com.android.billingclient.api.queryPurchasesAsync
+import com.radonshadow.focusdrift.BuildConfig
 import com.radonshadow.focusdrift.core.constants.SubscriptionConstants
 import com.radonshadow.focusdrift.domain.model.SubscriptionStatus
 import com.radonshadow.focusdrift.domain.model.SubscriptionTier
@@ -35,7 +36,12 @@ class SubscriptionRepositoryImpl @Inject constructor(
 ) : SubscriptionRepository {
 
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val status = MutableStateFlow(SubscriptionStatus(SubscriptionTier.FREE))
+
+    // Debug builds always report Pro so the app can be reviewed/tested end-to-end without a
+    // real Play Billing purchase. Release builds are unaffected — this never ships to users.
+    private val status = MutableStateFlow(
+        if (BuildConfig.DEBUG) SubscriptionStatus(SubscriptionTier.PRO_LIFETIME) else SubscriptionStatus(SubscriptionTier.FREE)
+    )
     private var isConnected = false
 
     private val purchasesUpdatedListener = PurchasesUpdatedListener { result, purchases ->

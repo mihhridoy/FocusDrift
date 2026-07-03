@@ -17,8 +17,10 @@ import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -42,8 +44,25 @@ import com.radonshadow.focusdrift.ui.theme.TextSecondary
 @Composable
 fun ShopScreen(viewModel: ShopViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsState()
+    val purchaseMessage by viewModel.purchaseMessageFlow.collectAsState()
+
+    LaunchedEffect(purchaseMessage) {
+        if (purchaseMessage != null) {
+            delay(2500)
+            viewModel.clearPurchaseMessage()
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize().background(Background)) {
+        if (purchaseMessage != null) {
+            Text(
+                purchaseMessage.orEmpty(),
+                color = AmberReward,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 8.dp)
+            )
+        }
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,

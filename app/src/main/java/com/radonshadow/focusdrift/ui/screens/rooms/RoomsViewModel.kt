@@ -3,11 +3,13 @@ package com.radonshadow.focusdrift.ui.screens.rooms
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.radonshadow.focusdrift.core.constants.SubscriptionConstants
 import com.radonshadow.focusdrift.core.extensions.stateInViewModel
 import com.radonshadow.focusdrift.data.local.preferences.UserPreferences
 import com.radonshadow.focusdrift.data.remote.firebase.FirebaseAuthManager
 import com.radonshadow.focusdrift.domain.model.BodyDoubleRoom
 import com.radonshadow.focusdrift.domain.repository.BodyDoubleRepository
+import com.radonshadow.focusdrift.domain.repository.SubscriptionRepository
 import com.radonshadow.focusdrift.domain.usecase.bodyDouble.CreateRoomUseCase
 import com.radonshadow.focusdrift.domain.usecase.bodyDouble.GetActiveRoomsUseCase
 import com.radonshadow.focusdrift.domain.usecase.bodyDouble.JoinRoomUseCase
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -33,11 +36,16 @@ class RoomsViewModel @Inject constructor(
     private val createRoomUseCase: CreateRoomUseCase,
     private val bodyDoubleRepository: BodyDoubleRepository,
     private val userPreferences: UserPreferences,
-    private val firebaseAuthManager: FirebaseAuthManager
+    private val firebaseAuthManager: FirebaseAuthManager,
+    private val subscriptionRepository: SubscriptionRepository
 ) : ViewModel() {
 
     val activeRooms: StateFlow<List<BodyDoubleRoom>> =
         getActiveRoomsUseCase().stateInViewModel(viewModelScope, emptyList())
+
+    val isPro: StateFlow<Boolean> = subscriptionRepository.observeSubscriptionStatus()
+        .map { it.isPro }
+        .stateInViewModel(viewModelScope, false)
 
     private val _currentRoom = MutableStateFlow<BodyDoubleRoom?>(null)
     val currentRoom: StateFlow<BodyDoubleRoom?> = _currentRoom.asStateFlow()
@@ -78,7 +86,15 @@ class RoomsViewModel @Inject constructor(
         }
     }
 
+    /** Body doubling is a Pro-only feature (see [SubscriptionConstants.FREE_BODY_DOUBLE_ROOMS]). */
+    private fun requiresPro(): Boolean {
+        if (SubscriptionConstants.FREE_BODY_DOUBLE_ROOMS || isPro.value) return false
+        _errorMessage.value = "Body doubling rooms are a Pro feature. Upgrade to Pro to join or host a room."
+        return true
+    }
+
     fun joinRoom(roomId: String, currentTask: String, onJoined: () -> Unit) {
+        if (requiresPro()) return
         launchGuarded {
             val userId = firebaseAuthManager.ensureSignedIn()
             val name = userPreferences.displayName.first()
@@ -93,12 +109,14 @@ class RoomsViewModel @Inject constructor(
     }
 
     fun sendReaction(roomId: String, reaction: String) {
+        if (requiresPro()) return
         launchGuarded {
             bodyDoubleRepository.sendReaction(roomId, firebaseAuthManager.ensureSignedIn(), reaction)
         }
     }
 
     fun createRoom(name: String, type: String, sessionDurationMs: Long, onCreated: (String) -> Unit) {
+        if (requiresPro()) return
         launchGuarded {
             val userId = firebaseAuthManager.ensureSignedIn()
             val roomId = createRoomUseCase(name, type, sessionDurationMs, userId)

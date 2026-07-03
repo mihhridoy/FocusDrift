@@ -11,5 +11,8 @@ data class TimerUiState(
     val nextSessionNumber: Int = 1,
     val selectedOrbSkinId: String = "orb_default",
     val selectedFocusSoundId: String = FocusSound.NONE.id,
-    val focusSoundVolume: Float = 0.5f
+    val focusSoundVolume: Float = 0.5f,
+    val isPro: Boolean = false,
+    val sessionsCompletedToday: Int = 0,
+    val freeSessionCapReached: Boolean = false
 )

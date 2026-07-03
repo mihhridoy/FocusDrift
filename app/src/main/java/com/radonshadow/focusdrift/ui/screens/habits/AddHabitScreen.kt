@@ -21,6 +21,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.radonshadow.focusdrift.core.extensions.clickableNoRipple
 import com.radonshadow.focusdrift.domain.model.HabitFrequency
+import com.radonshadow.focusdrift.ui.theme.AmberReward
 import com.radonshadow.focusdrift.ui.theme.Background
 import com.radonshadow.focusdrift.ui.theme.Border
 import com.radonshadow.focusdrift.ui.theme.IndigoPrimary
@@ -53,6 +55,8 @@ fun AddHabitScreen(
     var emoji by remember { mutableStateOf(EMOJI_OPTIONS.first()) }
     var frequency by remember { mutableStateOf(HabitFrequency.DAILY) }
     var tint by remember { mutableStateOf(TINT_OPTIONS.first()) }
+    val habitCapReached by viewModel.habitCapReached.collectAsState()
+    val upgradeMessage by viewModel.upgradeMessage.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize().background(Background).padding(24.dp)) {
         Text("Add habit", color = TextPrimary, fontFamily = Nunito, fontWeight = FontWeight.Black, fontSize = 24.sp)
@@ -134,12 +138,24 @@ fun AddHabitScreen(
             }
         }
 
+        if (upgradeMessage != null) {
+            Spacer(Modifier.height(12.dp))
+            Text(upgradeMessage.orEmpty(), color = AmberReward, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        }
+
         Spacer(Modifier.weight(1f))
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
-                .background(if (name.isNotBlank()) IndigoPrimary else Border, RoundedCornerShape(99.dp))
+                .background(
+                    when {
+                        habitCapReached -> Border
+                        name.isNotBlank() -> IndigoPrimary
+                        else -> Border
+                    },
+                    RoundedCornerShape(99.dp)
+                )
                 .clickableNoRipple {
                     if (name.isNotBlank()) {
                         viewModel.createHabit(name, emoji, frequency, tint, onDone)
@@ -147,7 +163,13 @@ fun AddHabitScreen(
                 },
             contentAlignment = Alignment.Center
         ) {
-            Text("Create habit", color = Background, fontFamily = Nunito, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
+            Text(
+                if (habitCapReached) "Free limit reached — Upgrade to Pro" else "Create habit",
+                color = Background,
+                fontFamily = Nunito,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 17.sp
+            )
         }
     }
 }

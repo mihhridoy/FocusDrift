@@ -59,7 +59,12 @@ fun RoomDetailScreen(
     val room by viewModel.currentRoom.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
-    LaunchedEffect(roomId) { viewModel.observeRoom(roomId) }
+    // Opening a room both watches it live and registers the current user as a participant —
+    // without the join call, a room's participant grid would never show you in it.
+    LaunchedEffect(roomId) {
+        viewModel.observeRoom(roomId)
+        viewModel.joinRoom(roomId, currentTask = "", onJoined = {})
+    }
     DisposableEffect(roomId) { onDispose { viewModel.leaveRoom(roomId) } }
 
     Column(modifier = Modifier.fillMaxSize().background(Background)) {

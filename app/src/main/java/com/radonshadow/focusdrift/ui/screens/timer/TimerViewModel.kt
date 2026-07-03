@@ -2,6 +2,7 @@ package com.radonshadow.focusdrift.ui.screens.timer
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.radonshadow.focusdrift.core.constants.SubscriptionConstants
 import com.radonshadow.focusdrift.core.constants.TimerConstants
 import com.radonshadow.focusdrift.core.extensions.minutesToMillis
 import com.radonshadow.focusdrift.core.extensions.stateInViewModel
@@ -10,6 +11,8 @@ import com.radonshadow.focusdrift.data.local.preferences.UserPreferences
 import com.radonshadow.focusdrift.domain.model.SessionState
 import com.radonshadow.focusdrift.domain.model.SessionType
 import com.radonshadow.focusdrift.domain.repository.FocusTimerController
+import com.radonshadow.focusdrift.domain.repository.SubscriptionRepository
+import com.radonshadow.focusdrift.domain.usecase.progress.GetUserProgressUseCase
 import com.radonshadow.focusdrift.domain.usecase.timer.AbandonSessionUseCase
 import com.radonshadow.focusdrift.domain.usecase.timer.PauseSessionUseCase
 import com.radonshadow.focusdrift.domain.usecase.timer.ResumeSessionUseCase
@@ -17,7 +20,6 @@ import com.radonshadow.focusdrift.domain.usecase.timer.StartFocusSessionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -29,6 +31,8 @@ class TimerViewModel @Inject constructor(
     private val resumeSessionUseCase: ResumeSessionUseCase,
     private val abandonSessionUseCase: AbandonSessionUseCase,
     private val timerPreferences: TimerPreferences,
+    private val subscriptionRepository: SubscriptionRepository,
+    getUserProgressUseCase: GetUserProgressUseCase,
     userPreferences: UserPreferences
 ) : ViewModel() {
 
@@ -42,6 +46,8 @@ class TimerViewModel @Inject constructor(
         val focusSoundVolume: Float
     )
 
+    private data class SessionGateInfo(val isPro: Boolean, val sessionsToday: Int)
+
     private val timerSettings = combine(
         timerPreferences.focusMinutes,
         timerPreferences.dailyGoalSessions,
@@ -49,12 +55,18 @@ class TimerViewModel @Inject constructor(
         timerPreferences.focusSoundVolume
     ) { focusMinutes, dailyGoal, soundId, volume -> TimerSettings(focusMinutes, dailyGoal, soundId, volume) }
 
+    private val sessionGateInfo = combine(
+        subscriptionRepository.observeSubscriptionStatus(),
+        getUserProgressUseCase()
+    ) { status, progress -> SessionGateInfo(status.isPro, progress.sessionsToday) }
+
     val uiState = combine(
         timerController.sessionState,
         timerSettings,
         userPreferences.selectedOrbSkinId,
-        taskState
-    ) { sessionState, settings, orbSkinId, task ->
+        taskState,
+        sessionGateInfo
+    ) { sessionState, settings, orbSkinId, task, gate ->
         TimerUiState(
             sessionState = sessionState,
             task = task,
@@ -63,7 +75,10 @@ class TimerViewModel @Inject constructor(
             nextSessionNumber = sessionNumber,
             selectedOrbSkinId = orbSkinId,
             selectedFocusSoundId = settings.focusSoundId,
-            focusSoundVolume = settings.focusSoundVolume
+            focusSoundVolume = settings.focusSoundVolume,
+            isPro = gate.isPro,
+            sessionsCompletedToday = gate.sessionsToday,
+            freeSessionCapReached = !gate.isPro && gate.sessionsToday >= SubscriptionConstants.FREE_SESSIONS_PER_DAY
         )
     }.stateInViewModel(viewModelScope, TimerUiState())
 
@@ -82,6 +97,7 @@ class TimerViewModel @Inject constructor(
 
     fun startFocusSession() {
         val state = uiState.value
+        if (state.freeSessionCapReached) return
         startFocusSessionUseCase(
             durationMs = state.focusMinutes.minutesToMillis(),
             sessionType = SessionType.FOCUS,

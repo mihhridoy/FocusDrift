@@ -38,6 +38,7 @@ import com.radonshadow.focusdrift.ui.components.DriftButton
 import com.radonshadow.focusdrift.ui.components.FocusOrb
 import com.radonshadow.focusdrift.ui.components.FocusOrbState
 import com.radonshadow.focusdrift.ui.components.SessionControlsBar
+import com.radonshadow.focusdrift.ui.theme.AmberReward
 import com.radonshadow.focusdrift.ui.theme.Background
 import com.radonshadow.focusdrift.ui.theme.DmMono
 import com.radonshadow.focusdrift.ui.theme.IndigoPrimary
@@ -67,7 +68,10 @@ fun TimerScreen(
                 selectedFocusSoundId = uiState.selectedFocusSoundId,
                 focusSoundVolume = uiState.focusSoundVolume,
                 onFocusSoundSelected = viewModel::selectFocusSound,
-                onFocusSoundVolumeChange = viewModel::setFocusSoundVolume
+                onFocusSoundVolumeChange = viewModel::setFocusSoundVolume,
+                isPro = uiState.isPro,
+                sessionsCompletedToday = uiState.sessionsCompletedToday,
+                freeSessionCapReached = uiState.freeSessionCapReached
             )
             is SessionState.Running -> RunningContent(state, onPauseResume = viewModel::pause, onReset = viewModel::abandon, onCompleteEarly = viewModel::completeEarly, onDrift = viewModel::markDrifting)
             is SessionState.Paused -> PausedContent(state, onPauseResume = viewModel::resume, onReset = viewModel::abandon, onCompleteEarly = viewModel::completeEarly)
@@ -84,7 +88,10 @@ fun TimerScreen(
                 selectedFocusSoundId = uiState.selectedFocusSoundId,
                 focusSoundVolume = uiState.focusSoundVolume,
                 onFocusSoundSelected = viewModel::selectFocusSound,
-                onFocusSoundVolumeChange = viewModel::setFocusSoundVolume
+                onFocusSoundVolumeChange = viewModel::setFocusSoundVolume,
+                isPro = uiState.isPro,
+                sessionsCompletedToday = uiState.sessionsCompletedToday,
+                freeSessionCapReached = uiState.freeSessionCapReached
             )
         }
     }
@@ -98,7 +105,10 @@ private fun IdleContent(
     selectedFocusSoundId: String,
     focusSoundVolume: Float,
     onFocusSoundSelected: (String) -> Unit,
-    onFocusSoundVolumeChange: (Float) -> Unit
+    onFocusSoundVolumeChange: (Float) -> Unit,
+    isPro: Boolean,
+    sessionsCompletedToday: Int,
+    freeSessionCapReached: Boolean
 ) {
     Column(
         modifier = Modifier.fillMaxSize().padding(30.dp),
@@ -107,6 +117,15 @@ private fun IdleContent(
     ) {
         FocusOrb(state = FocusOrbState.IDLE, size = 220.dp) {
             Text("25:00", color = TextPrimary, fontFamily = DmMono, fontSize = 44.sp)
+        }
+        if (!isPro) {
+            Spacer(Modifier.height(14.dp))
+            Text(
+                "$sessionsCompletedToday / ${com.radonshadow.focusdrift.core.constants.SubscriptionConstants.FREE_SESSIONS_PER_DAY} free sessions today",
+                color = TextSecondary,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold
+            )
         }
         Spacer(Modifier.height(36.dp))
         OutlinedTextField(
@@ -130,15 +149,30 @@ private fun IdleContent(
             onVolumeChange = onFocusSoundVolumeChange
         )
         Spacer(Modifier.height(24.dp))
+        if (freeSessionCapReached) {
+            Text(
+                "Upgrade to Pro for unlimited focus sessions",
+                color = AmberReward,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = 10.dp)
+            )
+        }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
-                .background(IndigoPrimary, RoundedCornerShape(99.dp))
+                .background(if (freeSessionCapReached) SurfaceElevated else IndigoPrimary, RoundedCornerShape(99.dp))
                 .clickableNoRipple(onStart),
             contentAlignment = Alignment.Center
         ) {
-            Text("Start Focus", color = Background, fontFamily = Nunito, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
+            Text(
+                if (freeSessionCapReached) "Daily limit reached" else "Start Focus",
+                color = if (freeSessionCapReached) TextSecondary else Background,
+                fontFamily = Nunito,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 17.sp
+            )
         }
     }
 }

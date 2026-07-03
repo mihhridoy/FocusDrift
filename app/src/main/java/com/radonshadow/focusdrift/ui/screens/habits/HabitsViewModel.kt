@@ -70,12 +70,16 @@ class HabitsViewModel @Inject constructor(
     }
 
     fun createHabit(name: String, emoji: String, frequency: HabitFrequency, colorTint: String, onDone: () -> Unit) {
-        if (habitCapReached.value) {
-            _upgradeMessage.value =
-                "Free plan is limited to ${SubscriptionConstants.FREE_HABITS_MAX} habits. Upgrade to Pro for unlimited habits."
-            return
-        }
         viewModelScope.launch {
+            // Read the cap directly instead of trusting habitCapReached.value here — that
+            // StateFlow only reflects reality once the UI is actively collecting it, and this
+            // is the actual gate, not just the display hint.
+            val isPro = subscriptionRepository.getSubscriptionStatus().isPro
+            if (!isPro && habitsWithStreaks.value.size >= SubscriptionConstants.FREE_HABITS_MAX) {
+                _upgradeMessage.value =
+                    "Free plan is limited to ${SubscriptionConstants.FREE_HABITS_MAX} habits. Upgrade to Pro for unlimited habits."
+                return@launch
+            }
             createHabitUseCase(name = name, emoji = emoji, frequency = frequency, colorTint = colorTint)
             onDone()
         }

@@ -19,7 +19,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -42,10 +41,6 @@ class RoomsViewModel @Inject constructor(
 
     val activeRooms: StateFlow<List<BodyDoubleRoom>> =
         getActiveRoomsUseCase().stateInViewModel(viewModelScope, emptyList())
-
-    val isPro: StateFlow<Boolean> = subscriptionRepository.observeSubscriptionStatus()
-        .map { it.isPro }
-        .stateInViewModel(viewModelScope, false)
 
     private val _currentRoom = MutableStateFlow<BodyDoubleRoom?>(null)
     val currentRoom: StateFlow<BodyDoubleRoom?> = _currentRoom.asStateFlow()
@@ -86,16 +81,24 @@ class RoomsViewModel @Inject constructor(
         }
     }
 
-    /** Body doubling is a Pro-only feature (see [SubscriptionConstants.FREE_BODY_DOUBLE_ROOMS]). */
-    private fun requiresPro(): Boolean {
-        if (SubscriptionConstants.FREE_BODY_DOUBLE_ROOMS || isPro.value) return false
+    /**
+     * Body doubling is a Pro-only feature (see [SubscriptionConstants.FREE_BODY_DOUBLE_ROOMS]).
+     * Reads the subscription status directly via the suspend accessor rather than a separately
+     * collected StateFlow — a `.stateIn(WhileSubscribed)` field here would never actually start
+     * collecting unless something in the UI observes it, silently staying stuck on its initial
+     * value (which is exactly the bug that made every build, including Pro-unlocked debug
+     * builds, treat every user as free).
+     */
+    private suspend fun requiresPro(): Boolean {
+        if (SubscriptionConstants.FREE_BODY_DOUBLE_ROOMS) return false
+        if (subscriptionRepository.getSubscriptionStatus().isPro) return false
         _errorMessage.value = "Body doubling rooms are a Pro feature. Upgrade to Pro to join or host a room."
         return true
     }
 
     fun joinRoom(roomId: String, currentTask: String, onJoined: () -> Unit) {
-        if (requiresPro()) return
         launchGuarded {
+            if (requiresPro()) return@launchGuarded
             val userId = firebaseAuthManager.ensureSignedIn()
             val name = userPreferences.displayName.first()
             val color = userPreferences.avatarColor.first()
@@ -109,15 +112,15 @@ class RoomsViewModel @Inject constructor(
     }
 
     fun sendReaction(roomId: String, reaction: String) {
-        if (requiresPro()) return
         launchGuarded {
+            if (requiresPro()) return@launchGuarded
             bodyDoubleRepository.sendReaction(roomId, firebaseAuthManager.ensureSignedIn(), reaction)
         }
     }
 
     fun createRoom(name: String, type: String, sessionDurationMs: Long, onCreated: (String) -> Unit) {
-        if (requiresPro()) return
         launchGuarded {
+            if (requiresPro()) return@launchGuarded
             val userId = firebaseAuthManager.ensureSignedIn()
             val roomId = createRoomUseCase(name, type, sessionDurationMs, userId)
             joinRoomUseCase(roomId, userPreferences.displayName.first(), userPreferences.avatarColor.first(), "", userId)

@@ -2,6 +2,7 @@ package com.radonshadow.focusdrift.data.repository
 
 import android.app.Activity
 import android.content.Context
+import android.util.Log
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
@@ -20,6 +21,7 @@ import com.radonshadow.focusdrift.domain.model.SubscriptionStatus
 import com.radonshadow.focusdrift.domain.model.SubscriptionTier
 import com.radonshadow.focusdrift.domain.repository.SubscriptionRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -35,7 +37,14 @@ class SubscriptionRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context
 ) : SubscriptionRepository {
 
-    private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // Play Billing is unavailable on plenty of real devices (no Play Store/Play Services, e.g.
+    // sideloaded test builds) and every call here does I/O across a binder connection to the
+    // Play Store app — none of that should ever be allowed to crash the whole app, since a
+    // missing/broken billing connection just means "treat this device as not-yet-purchased".
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        Log.e("SubscriptionRepository", "Unhandled billing error", throwable)
+    }
+    private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + exceptionHandler)
 
     // Debug builds always report Pro so the app can be reviewed/tested end-to-end without a
     // real Play Billing purchase. Release builds are unaffected — this never ships to users.
@@ -50,23 +59,26 @@ class SubscriptionRepositoryImpl @Inject constructor(
         }
     }
 
-    private val billingClient: BillingClient = BillingClient.newBuilder(context)
-        .setListener(purchasesUpdatedListener)
-        .enablePendingPurchases()
-        .build()
+    private val billingClient: BillingClient? = runCatching {
+        BillingClient.newBuilder(context)
+            .setListener(purchasesUpdatedListener)
+            .enablePendingPurchases()
+            .build()
+    }.onFailure { Log.e("SubscriptionRepository", "BillingClient could not be created", it) }.getOrNull()
 
     init {
         repositoryScope.launch { ensureConnected() }
     }
 
     private suspend fun ensureConnected() {
-        if (isConnected) return
-        isConnected = connectBillingClient()
-        if (isConnected) refreshPurchases()
+        if (isConnected || billingClient == null) return
+        isConnected = runCatching { connectBillingClient() }.getOrDefault(false)
+        if (isConnected) runCatching { refreshPurchases() }
     }
 
     private suspend fun connectBillingClient(): Boolean = suspendCancellableCoroutine { cont ->
-        billingClient.startConnection(object : BillingClientStateListener {
+        val client = billingClient ?: run { cont.resumeWith(Result.success(false)); return@suspendCancellableCoroutine }
+        client.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(result: BillingResult) {
                 if (cont.isActive) cont.resumeWith(Result.success(result.responseCode == BillingClient.BillingResponseCode.OK))
             }
@@ -78,10 +90,11 @@ class SubscriptionRepositoryImpl @Inject constructor(
     }
 
     private suspend fun refreshPurchases() {
-        val subs = billingClient.queryPurchasesAsync(
+        val client = billingClient ?: return
+        val subs = client.queryPurchasesAsync(
             QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build()
         )
-        val inApp = billingClient.queryPurchasesAsync(
+        val inApp = client.queryPurchasesAsync(
             QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.INAPP).build()
         )
         (subs.purchasesList + inApp.purchasesList).forEach { handlePurchase(it) }
@@ -100,7 +113,7 @@ class SubscriptionRepositoryImpl @Inject constructor(
 
         if (!purchase.isAcknowledged) {
             runCatching {
-                billingClient.acknowledgePurchase(
+                billingClient?.acknowledgePurchase(
                     AcknowledgePurchaseParams.newBuilder()
                         .setPurchaseToken(purchase.purchaseToken)
                         .build()
@@ -112,12 +125,13 @@ class SubscriptionRepositoryImpl @Inject constructor(
     override fun observeSubscriptionStatus(): Flow<SubscriptionStatus> = status
 
     override suspend fun getSubscriptionStatus(): SubscriptionStatus {
-        ensureConnected()
+        runCatching { ensureConnected() }
         return status.value
     }
 
     override suspend fun launchPurchaseFlow(activity: Activity, productId: String) {
-        ensureConnected()
+        val client = billingClient ?: return
+        runCatching { ensureConnected() }
         val productType = if (productId == SubscriptionConstants.PRODUCT_LIFETIME) {
             BillingClient.ProductType.INAPP
         } else {
@@ -135,7 +149,7 @@ class SubscriptionRepositoryImpl @Inject constructor(
             )
             .build()
 
-        val result = billingClient.queryProductDetails(params)
+        val result = client.queryProductDetails(params)
         val productDetails = result.productDetailsList?.firstOrNull() ?: return
 
         val productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder()
@@ -151,11 +165,13 @@ class SubscriptionRepositoryImpl @Inject constructor(
             .setProductDetailsParamsList(listOf(productDetailsParams))
             .build()
 
-        billingClient.launchBillingFlow(activity, flowParams)
+        client.launchBillingFlow(activity, flowParams)
     }
 
     override suspend fun restorePurchases() {
-        ensureConnected()
-        refreshPurchases()
+        runCatching {
+            ensureConnected()
+            refreshPurchases()
+        }
     }
 }

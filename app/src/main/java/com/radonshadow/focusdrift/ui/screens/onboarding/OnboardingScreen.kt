@@ -26,7 +26,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -47,7 +46,6 @@ import com.radonshadow.focusdrift.ui.theme.SurfaceElevated
 import com.radonshadow.focusdrift.ui.theme.TealRooms
 import com.radonshadow.focusdrift.ui.theme.TextPrimary
 import com.radonshadow.focusdrift.ui.theme.TextSecondary
-import kotlinx.coroutines.launch
 
 private data class OnboardingSlide(val accent: androidx.compose.ui.graphics.Color, val headline: String, val body: String)
 
@@ -64,7 +62,6 @@ fun OnboardingScreen(
     viewModel: OnboardingViewModel = hiltViewModel()
 ) {
     val pagerState = rememberPagerState(pageCount = { SLIDES.size })
-    val scope = rememberCoroutineScope()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
     KeepScreenOn(enabled = true)
@@ -108,23 +105,16 @@ fun OnboardingScreen(
 
             Spacer(Modifier.height(26.dp))
 
-            val isLastPage = pagerState.currentPage == SLIDES.lastIndex
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
                     .background(IndigoPrimary, RoundedCornerShape(99.dp))
-                    .clickableNoRipple {
-                        if (isLastPage) {
-                            viewModel.completeOnboarding(onFinished)
-                        } else {
-                            scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
-                        }
-                    },
+                    .clickableNoRipple { viewModel.completeOnboarding(onFinished) },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    if (isLastPage) "Let's go" else "Next",
+                    "Get Started",
                     color = Background,
                     fontFamily = Nunito,
                     fontWeight = FontWeight.ExtraBold,

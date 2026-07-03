@@ -1,6 +1,7 @@
 package com.radonshadow.focusdrift
 
 import android.app.Application
+import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -12,10 +13,12 @@ import com.radonshadow.focusdrift.worker.DailyResetWorker
 import com.radonshadow.focusdrift.worker.HabitReminderWorker
 import com.radonshadow.focusdrift.worker.StreakProtectionWorker
 import dagger.hilt.android.HiltAndroidApp
+import java.io.File
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
+import java.util.Date
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -27,9 +30,28 @@ class FocusDriftApp : Application(), Configuration.Provider {
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
 
     override fun onCreate() {
+        installCrashLogger()
         super.onCreate()
         NotificationUtils.ensureChannels(this)
         scheduleBackgroundWork()
+    }
+
+    /**
+     * Writes any uncaught exception to a plain-text file under this app's external files dir
+     * (no permission needed, readable with any file manager app) so a crash can be diagnosed
+     * from a real device without ADB. Remove once the app is stable in production.
+     */
+    private fun installCrashLogger() {
+        val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            runCatching {
+                val file = File(getExternalFilesDir(null), "last_crash.txt")
+                file.writeText(
+                    "Time: ${Date()}\nThread: ${thread.name}\n\n${Log.getStackTraceString(throwable)}"
+                )
+            }
+            previousHandler?.uncaughtException(thread, throwable)
+        }
     }
 
     private fun scheduleBackgroundWork() {

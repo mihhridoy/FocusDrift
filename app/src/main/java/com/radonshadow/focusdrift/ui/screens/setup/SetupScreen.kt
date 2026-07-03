@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.radonshadow.focusdrift.core.extensions.clickableNoRipple
+import com.radonshadow.focusdrift.ui.components.KeepScreenOn
 import com.radonshadow.focusdrift.ui.theme.Background
 import com.radonshadow.focusdrift.ui.theme.Border
 import com.radonshadow.focusdrift.ui.theme.IndigoPrimary
@@ -45,6 +46,8 @@ fun SetupScreen(
     viewModel: SetupViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    KeepScreenOn(enabled = true)
 
     Column(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(

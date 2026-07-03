@@ -37,6 +37,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.radonshadow.focusdrift.core.extensions.clickableNoRipple
 import com.radonshadow.focusdrift.ui.components.FocusOrb
 import com.radonshadow.focusdrift.ui.components.FocusOrbState
+import com.radonshadow.focusdrift.ui.components.KeepScreenOn
 import com.radonshadow.focusdrift.ui.theme.AmberReward
 import com.radonshadow.focusdrift.ui.theme.Background
 import com.radonshadow.focusdrift.ui.theme.Border
@@ -65,6 +66,8 @@ fun OnboardingScreen(
     val pagerState = rememberPagerState(pageCount = { SLIDES.size })
     val scope = rememberCoroutineScope()
     val errorMessage by viewModel.errorMessage.collectAsState()
+
+    KeepScreenOn(enabled = true)
 
     Column(modifier = Modifier.fillMaxSize().background(Background)) {
         Row(

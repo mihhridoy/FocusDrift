@@ -37,6 +37,7 @@ import com.radonshadow.focusdrift.domain.model.SessionType
 import com.radonshadow.focusdrift.ui.components.DriftButton
 import com.radonshadow.focusdrift.ui.components.FocusOrb
 import com.radonshadow.focusdrift.ui.components.FocusOrbState
+import com.radonshadow.focusdrift.ui.components.KeepScreenOn
 import com.radonshadow.focusdrift.ui.components.SessionControlsBar
 import com.radonshadow.focusdrift.ui.theme.AmberReward
 import com.radonshadow.focusdrift.ui.theme.Background
@@ -58,6 +59,15 @@ fun TimerScreen(
     LaunchedEffect(uiState.sessionState) {
         if (uiState.sessionState is SessionState.Complete) onSessionComplete()
     }
+
+    // A focus session easily outlasts the device's screen timeout, which would otherwise dim and
+    // lock the screen mid-session — read as the app "going dark" or "closing" while it was
+    // actually still running underneath a sleeping display.
+    val keepScreenOn = when (uiState.sessionState) {
+        is SessionState.Running, is SessionState.Paused, is SessionState.Drifting, is SessionState.OnBreak -> true
+        else -> false
+    }
+    KeepScreenOn(enabled = keepScreenOn)
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         when (val state = uiState.sessionState) {

@@ -20,4 +20,5 @@ interface FocusTimerController {
     fun resumeFromDrift()
     fun completeEarly()
     fun abandon()
+    fun setFocusSoundVolume(volume: Float)
 }

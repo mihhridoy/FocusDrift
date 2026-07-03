@@ -1,5 +1,6 @@
 package com.radonshadow.focusdrift.ui.screens.timer
 
+import com.radonshadow.focusdrift.domain.model.FocusSound
 import com.radonshadow.focusdrift.domain.model.SessionState
 
 data class TimerUiState(
@@ -8,5 +9,7 @@ data class TimerUiState(
     val focusMinutes: Int = 25,
     val dailyGoalSessions: Int = 5,
     val nextSessionNumber: Int = 1,
-    val selectedOrbSkinId: String = "orb_default"
+    val selectedOrbSkinId: String = "orb_default",
+    val selectedFocusSoundId: String = FocusSound.NONE.id,
+    val focusSoundVolume: Float = 0.5f
 )

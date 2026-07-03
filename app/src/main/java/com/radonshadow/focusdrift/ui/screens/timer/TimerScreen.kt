@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.radonshadow.focusdrift.core.extensions.clickableNoRipple
 import com.radonshadow.focusdrift.core.extensions.toMMSS
+import com.radonshadow.focusdrift.domain.model.FocusSound
 import com.radonshadow.focusdrift.domain.model.SessionState
 import com.radonshadow.focusdrift.domain.model.SessionType
 import com.radonshadow.focusdrift.ui.components.DriftButton
@@ -38,6 +42,7 @@ import com.radonshadow.focusdrift.ui.theme.Background
 import com.radonshadow.focusdrift.ui.theme.DmMono
 import com.radonshadow.focusdrift.ui.theme.IndigoPrimary
 import com.radonshadow.focusdrift.ui.theme.Nunito
+import com.radonshadow.focusdrift.ui.theme.Surface
 import com.radonshadow.focusdrift.ui.theme.SurfaceElevated
 import com.radonshadow.focusdrift.ui.theme.TextPrimary
 import com.radonshadow.focusdrift.ui.theme.TextSecondary
@@ -58,7 +63,11 @@ fun TimerScreen(
             is SessionState.Idle -> IdleContent(
                 task = uiState.task,
                 onTaskChange = viewModel::updateTask,
-                onStart = viewModel::startFocusSession
+                onStart = viewModel::startFocusSession,
+                selectedFocusSoundId = uiState.selectedFocusSoundId,
+                focusSoundVolume = uiState.focusSoundVolume,
+                onFocusSoundSelected = viewModel::selectFocusSound,
+                onFocusSoundVolumeChange = viewModel::setFocusSoundVolume
             )
             is SessionState.Running -> RunningContent(state, onPauseResume = viewModel::pause, onReset = viewModel::abandon, onCompleteEarly = viewModel::completeEarly, onDrift = viewModel::markDrifting)
             is SessionState.Paused -> PausedContent(state, onPauseResume = viewModel::resume, onReset = viewModel::abandon, onCompleteEarly = viewModel::completeEarly)
@@ -70,7 +79,15 @@ fun TimerScreen(
 }
 
 @Composable
-private fun IdleContent(task: String, onTaskChange: (String) -> Unit, onStart: () -> Unit) {
+private fun IdleContent(
+    task: String,
+    onTaskChange: (String) -> Unit,
+    onStart: () -> Unit,
+    selectedFocusSoundId: String,
+    focusSoundVolume: Float,
+    onFocusSoundSelected: (String) -> Unit,
+    onFocusSoundVolumeChange: (Float) -> Unit
+) {
     Column(
         modifier = Modifier.fillMaxSize().padding(30.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -94,6 +111,13 @@ private fun IdleContent(task: String, onTaskChange: (String) -> Unit, onStart: (
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(24.dp))
+        FocusSoundPicker(
+            selectedFocusSoundId = selectedFocusSoundId,
+            volume = focusSoundVolume,
+            onSoundSelected = onFocusSoundSelected,
+            onVolumeChange = onFocusSoundVolumeChange
+        )
+        Spacer(Modifier.height(24.dp))
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -103,6 +127,55 @@ private fun IdleContent(task: String, onTaskChange: (String) -> Unit, onStart: (
             contentAlignment = Alignment.Center
         ) {
             Text("Start Focus", color = Background, fontFamily = Nunito, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
+        }
+    }
+}
+
+@Composable
+private fun FocusSoundPicker(
+    selectedFocusSoundId: String,
+    volume: Float,
+    onSoundSelected: (String) -> Unit,
+    onVolumeChange: (Float) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            "Background sound",
+            color = TextSecondary,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 13.sp,
+            modifier = Modifier.padding(bottom = 10.dp)
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FocusSound.entries.forEach { sound ->
+                val selected = sound.id == selectedFocusSoundId
+                Box(
+                    modifier = Modifier
+                        .background(if (selected) IndigoPrimary else Surface, RoundedCornerShape(99.dp))
+                        .clickableNoRipple { onSoundSelected(sound.id) }
+                        .padding(horizontal = 14.dp, vertical = 9.dp)
+                ) {
+                    Text(
+                        sound.label,
+                        color = if (selected) Background else TextSecondary,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
+        if (selectedFocusSoundId != FocusSound.NONE.id) {
+            Spacer(Modifier.height(14.dp))
+            Slider(
+                value = volume,
+                onValueChange = onVolumeChange,
+                valueRange = 0f..1f,
+                colors = SliderDefaults.colors(
+                    thumbColor = TextPrimary,
+                    activeTrackColor = IndigoPrimary,
+                    inactiveTrackColor = SurfaceElevated
+                )
+            )
         }
     }
 }

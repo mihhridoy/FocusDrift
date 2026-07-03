@@ -8,9 +8,12 @@ import android.os.IBinder
 import androidx.core.app.NotificationManagerCompat
 import com.radonshadow.focusdrift.core.constants.AppConstants
 import com.radonshadow.focusdrift.core.constants.TimerConstants
+import com.radonshadow.focusdrift.core.utils.FocusSoundPlayer
 import com.radonshadow.focusdrift.core.utils.HapticUtils
 import com.radonshadow.focusdrift.core.utils.NotificationUtils
 import com.radonshadow.focusdrift.core.utils.SoundUtils
+import com.radonshadow.focusdrift.data.local.preferences.TimerPreferences
+import com.radonshadow.focusdrift.domain.model.FocusSound
 import com.radonshadow.focusdrift.domain.model.SessionState
 import com.radonshadow.focusdrift.domain.model.SessionType
 import com.radonshadow.focusdrift.domain.usecase.timer.CompleteSessionUseCase
@@ -21,6 +24,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -33,6 +37,8 @@ import javax.inject.Inject
 class FocusTimerService : Service() {
 
     @Inject lateinit var completeSessionUseCase: CompleteSessionUseCase
+    @Inject lateinit var timerPreferences: TimerPreferences
+    @Inject lateinit var focusSoundPlayer: FocusSoundPlayer
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val binder = LocalBinder()
@@ -86,26 +92,44 @@ class FocusTimerService : Service() {
         sessionNumber = number
         dailyGoalSessions = dailyGoal
         startForeground(NOTIFICATION_ID, NotificationUtils.timerNotification(this, type.label, remainingMs))
+        startFocusSoundIfFocusSession()
         tick()
+    }
+
+    private fun startFocusSoundIfFocusSession() {
+        if (sessionType != SessionType.FOCUS) return
+        serviceScope.launch {
+            val sound = FocusSound.fromId(timerPreferences.selectedFocusSoundId.first())
+            val volume = timerPreferences.focusSoundVolume.first()
+            focusSoundPlayer.start(sound, volume)
+        }
     }
 
     fun pauseTimer() {
         countDownTimer?.cancel()
+        focusSoundPlayer.pause()
         _sessionState.value = SessionState.Paused(remainingMs, totalMs, sessionType, currentTask, sessionNumber)
     }
 
     fun resumeTimer() {
+        focusSoundPlayer.resume()
         tick()
     }
 
     fun onUserDrifting() {
         countDownTimer?.cancel()
+        focusSoundPlayer.pause()
         HapticUtils.drift(this)
         _sessionState.value = SessionState.Drifting(remainingMs, totalMs, sessionType, sessionNumber)
     }
 
     fun resumeFromDrift() {
+        focusSoundPlayer.resume()
         tick()
+    }
+
+    fun setFocusSoundVolume(volume: Float) {
+        focusSoundPlayer.setVolume(volume)
     }
 
     fun completeNow() {
@@ -115,6 +139,7 @@ class FocusTimerService : Service() {
 
     fun abandon() {
         countDownTimer?.cancel()
+        focusSoundPlayer.stop()
         _sessionState.value = SessionState.Idle
         stopTimerAndService()
     }
@@ -144,6 +169,7 @@ class FocusTimerService : Service() {
 
     private fun onSessionComplete() {
         val actualDurationMs = totalMs - remainingMs
+        focusSoundPlayer.stop()
         SoundUtils.playSessionComplete(this)
         HapticUtils.sessionComplete(this)
 
@@ -176,6 +202,7 @@ class FocusTimerService : Service() {
 
     override fun onDestroy() {
         countDownTimer?.cancel()
+        focusSoundPlayer.stop()
         super.onDestroy()
     }
 

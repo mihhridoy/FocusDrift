@@ -102,6 +102,10 @@ class TimerServiceConnection @Inject constructor(
         releaseBinding()
     }
 
+    override fun setFocusSoundVolume(volume: Float) {
+        boundService?.setFocusSoundVolume(volume)
+    }
+
     private fun releaseBinding() {
         if (!isBound) return
         runCatching { context.unbindService(serviceConnection) }

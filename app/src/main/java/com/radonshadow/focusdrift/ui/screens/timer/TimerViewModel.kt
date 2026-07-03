@@ -35,25 +35,49 @@ class TimerViewModel @Inject constructor(
     private var sessionNumber = 1
     private val taskState = MutableStateFlow("")
 
-    val uiState = combine(
-        timerController.sessionState,
+    private data class TimerSettings(
+        val focusMinutes: Int,
+        val dailyGoalSessions: Int,
+        val focusSoundId: String,
+        val focusSoundVolume: Float
+    )
+
+    private val timerSettings = combine(
         timerPreferences.focusMinutes,
         timerPreferences.dailyGoalSessions,
+        timerPreferences.selectedFocusSoundId,
+        timerPreferences.focusSoundVolume
+    ) { focusMinutes, dailyGoal, soundId, volume -> TimerSettings(focusMinutes, dailyGoal, soundId, volume) }
+
+    val uiState = combine(
+        timerController.sessionState,
+        timerSettings,
         userPreferences.selectedOrbSkinId,
         taskState
-    ) { sessionState, focusMinutes, dailyGoal, orbSkinId, task ->
+    ) { sessionState, settings, orbSkinId, task ->
         TimerUiState(
             sessionState = sessionState,
             task = task,
-            focusMinutes = focusMinutes,
-            dailyGoalSessions = dailyGoal,
+            focusMinutes = settings.focusMinutes,
+            dailyGoalSessions = settings.dailyGoalSessions,
             nextSessionNumber = sessionNumber,
-            selectedOrbSkinId = orbSkinId
+            selectedOrbSkinId = orbSkinId,
+            selectedFocusSoundId = settings.focusSoundId,
+            focusSoundVolume = settings.focusSoundVolume
         )
     }.stateInViewModel(viewModelScope, TimerUiState())
 
     fun updateTask(task: String) {
         taskState.value = task
+    }
+
+    fun selectFocusSound(id: String) {
+        viewModelScope.launch { timerPreferences.setSelectedFocusSound(id) }
+    }
+
+    fun setFocusSoundVolume(volume: Float) {
+        viewModelScope.launch { timerPreferences.setFocusSoundVolume(volume) }
+        timerController.setFocusSoundVolume(volume)
     }
 
     fun startFocusSession() {

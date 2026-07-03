@@ -9,10 +9,14 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.radonshadow.focusdrift.core.constants.AppConstants
 import com.radonshadow.focusdrift.core.utils.NotificationUtils
+import com.radonshadow.focusdrift.data.remote.firebase.FirebaseAuthManager
 import com.radonshadow.focusdrift.worker.DailyResetWorker
 import com.radonshadow.focusdrift.worker.HabitReminderWorker
 import com.radonshadow.focusdrift.worker.StreakProtectionWorker
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.File
 import java.time.Duration
 import java.time.LocalDateTime
@@ -25,6 +29,7 @@ import javax.inject.Inject
 class FocusDriftApp : Application(), Configuration.Provider {
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
+    @Inject lateinit var firebaseAuthManager: FirebaseAuthManager
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
@@ -34,6 +39,19 @@ class FocusDriftApp : Application(), Configuration.Provider {
         super.onCreate()
         NotificationUtils.ensureChannels(this)
         scheduleBackgroundWork()
+        signInAnonymouslyForBodyDoubling()
+    }
+
+    /**
+     * Body doubling rooms are gated by `auth != null` in database.rules.json. Sign in as soon
+     * as the process starts so the Home screen's room list is already authorized by the time
+     * the user reaches it, instead of racing (or failing outright) on first launch.
+     */
+    private fun signInAnonymouslyForBodyDoubling() {
+        CoroutineScope(Dispatchers.IO).launch {
+            runCatching { firebaseAuthManager.ensureSignedIn() }
+                .onFailure { Log.e("FocusDriftApp", "Anonymous sign-in failed", it) }
+        }
     }
 
     /**
@@ -44,12 +62,12 @@ class FocusDriftApp : Application(), Configuration.Provider {
     private fun installCrashLogger() {
         val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            runCatching {
-                val file = File(getExternalFilesDir(null), "last_crash.txt")
-                file.writeText(
-                    "Time: ${Date()}\nThread: ${thread.name}\n\n${Log.getStackTraceString(throwable)}"
-                )
-            }
+            val report = "Time: ${Date()}\nThread: ${thread.name}\n\n${Log.getStackTraceString(throwable)}"
+            Log.e("FocusDriftCrash", report)
+            // filesDir is always available regardless of external storage state, unlike
+            // getExternalFilesDir() which can return null and silently drop the write.
+            runCatching { File(filesDir, "last_crash.txt").writeText(report) }
+            runCatching { getExternalFilesDir(null)?.let { File(it, "last_crash.txt").writeText(report) } }
             previousHandler?.uncaughtException(thread, throwable)
         }
     }

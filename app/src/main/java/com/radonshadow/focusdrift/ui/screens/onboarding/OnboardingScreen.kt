@@ -24,6 +24,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,6 +64,7 @@ fun OnboardingScreen(
 ) {
     val pagerState = rememberPagerState(pageCount = { SLIDES.size })
     val scope = rememberCoroutineScope()
+    val errorMessage by viewModel.errorMessage.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize().background(Background)) {
         Row(
@@ -88,6 +91,18 @@ fun OnboardingScreen(
 
         Column(modifier = Modifier.padding(horizontal = 36.dp, vertical = 26.dp)) {
             PagerDots(pagerState, SLIDES.map { it.accent })
+
+            if (errorMessage != null) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    errorMessage.orEmpty(),
+                    color = androidx.compose.ui.graphics.Color.Red,
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             Spacer(Modifier.height(26.dp))
 
             val isLastPage = pagerState.currentPage == SLIDES.lastIndex

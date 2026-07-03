@@ -23,5 +23,6 @@ data class SetupUiState(
     val selectedDriftTimes: Set<String> = setOf("morning", "evening"),
     val selectedFocusKillers: Set<String> = setOf("notifications", "low_energy"),
     val focusMinutes: Int = 20,
-    val isSaving: Boolean = false
+    val isSaving: Boolean = false,
+    val errorMessage: String? = null
 )

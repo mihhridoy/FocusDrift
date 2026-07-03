@@ -124,6 +124,16 @@ fun SetupScreen(
                 Text("45min", color = TextSecondary, fontSize = 12.sp)
             }
 
+            if (uiState.errorMessage != null) {
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    uiState.errorMessage.orEmpty(),
+                    color = androidx.compose.ui.graphics.Color.Red,
+                    fontSize = 13.sp,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             Spacer(Modifier.height(20.dp))
         }
 

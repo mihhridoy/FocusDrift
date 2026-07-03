@@ -1,5 +1,6 @@
 package com.radonshadow.focusdrift.ui.screens.setup
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.radonshadow.focusdrift.data.local.preferences.TimerPreferences
@@ -44,15 +45,22 @@ class SetupViewModel @Inject constructor(
 
     fun finishSetup(onDone: () -> Unit) {
         val state = _uiState.value
-        _uiState.update { it.copy(isSaving = true) }
+        _uiState.update { it.copy(isSaving = true, errorMessage = null) }
         viewModelScope.launch {
-            userPreferences.setAdhdSetup(
-                driftTimes = state.selectedDriftTimes,
-                focusKillers = state.selectedFocusKillers,
-                mainGoal = ""
-            )
-            timerPreferences.setFocusMinutes(state.focusMinutes)
-            onDone()
+            try {
+                userPreferences.setAdhdSetup(
+                    driftTimes = state.selectedDriftTimes,
+                    focusKillers = state.selectedFocusKillers,
+                    mainGoal = ""
+                )
+                timerPreferences.setFocusMinutes(state.focusMinutes)
+                onDone()
+            } catch (t: Throwable) {
+                Log.e("SetupViewModel", "finishSetup failed", t)
+                _uiState.update {
+                    it.copy(isSaving = false, errorMessage = "Couldn't continue: ${t.message ?: t::class.simpleName}")
+                }
+            }
         }
     }
 }

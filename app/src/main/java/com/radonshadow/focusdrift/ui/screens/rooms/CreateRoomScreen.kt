@@ -16,6 +16,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +48,8 @@ fun CreateRoomScreen(
     var name by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf(ROOM_TYPES.first()) }
     var minutes by remember { mutableStateOf(TimerConstants.DEFAULT_FOCUS_MINUTES) }
+    val isBusy by viewModel.isBusy.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize().background(Background).padding(24.dp)) {
         Text("Create a room", color = TextPrimary, fontFamily = Nunito, fontWeight = FontWeight.Black, fontSize = 24.sp)
@@ -98,20 +101,25 @@ fun CreateRoomScreen(
             )
         )
 
+        if (errorMessage != null) {
+            Spacer(Modifier.height(12.dp))
+            Text(errorMessage.orEmpty(), color = androidx.compose.ui.graphics.Color.Red, fontSize = 13.sp)
+        }
+
         Spacer(Modifier.weight(1f))
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
-                .background(if (name.isNotBlank()) IndigoPrimary else Border, RoundedCornerShape(99.dp))
+                .background(if (name.isNotBlank() && !isBusy) IndigoPrimary else Border, RoundedCornerShape(99.dp))
                 .clickableNoRipple {
-                    if (name.isNotBlank()) {
+                    if (name.isNotBlank() && !isBusy) {
                         viewModel.createRoom(name, selectedType, minutes.minutesToMillis(), onCreated)
                     }
                 },
             contentAlignment = Alignment.Center
         ) {
-            Text("Create room", color = Background, fontFamily = Nunito, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
+            Text(if (isBusy) "Creating…" else "Create room", color = Background, fontFamily = Nunito, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
         }
     }
 }

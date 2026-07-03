@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Fireplace
@@ -48,9 +49,10 @@ fun BottomNavBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(74.dp)
             .background(SurfaceNav)
             .border(width = 1.dp, color = Border)
+            .navigationBarsPadding()
+            .height(74.dp)
             .padding(horizontal = 8.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceAround
     ) {

@@ -57,6 +57,7 @@ fun RoomDetailScreen(
     viewModel: RoomsViewModel = hiltViewModel()
 ) {
     val room by viewModel.currentRoom.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
 
     LaunchedEffect(roomId) { viewModel.observeRoom(roomId) }
     DisposableEffect(roomId) { onDispose { viewModel.leaveRoom(roomId) } }
@@ -108,6 +109,16 @@ fun RoomDetailScreen(
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
+            if (errorMessage != null) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    errorMessage.orEmpty(),
+                    color = androidx.compose.ui.graphics.Color.Red,
+                    fontSize = 12.sp,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
             Spacer(Modifier.height(14.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                 ReactionButton(Icons.Filled.ThumbUp) { viewModel.sendReaction(roomId, "thumbs_up") }

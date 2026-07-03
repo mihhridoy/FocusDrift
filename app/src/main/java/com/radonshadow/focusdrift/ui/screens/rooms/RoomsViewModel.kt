@@ -1,5 +1,6 @@
 package com.radonshadow.focusdrift.ui.screens.rooms
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.radonshadow.focusdrift.core.extensions.stateInViewModel
@@ -41,14 +42,44 @@ class RoomsViewModel @Inject constructor(
     private val _currentRoom = MutableStateFlow<BodyDoubleRoom?>(null)
     val currentRoom: StateFlow<BodyDoubleRoom?> = _currentRoom.asStateFlow()
 
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    private val _isBusy = MutableStateFlow(false)
+    val isBusy: StateFlow<Boolean> = _isBusy.asStateFlow()
+
+    fun clearError() {
+        _errorMessage.value = null
+    }
+
     fun observeRoom(roomId: String) {
         viewModelScope.launch {
             bodyDoubleRepository.observeRoom(roomId).collect { _currentRoom.value = it }
         }
     }
 
-    fun joinRoom(roomId: String, currentTask: String, onJoined: () -> Unit) {
+    /**
+     * Every room action below does a real network round-trip (Firebase anonymous auth, then a
+     * realtime-db write) that has no offline queuing the way plain db writes do — a flaky or
+     * absent connection throws straight out of await(), so every call site is wrapped here
+     * instead of crashing the app on a spotty connection.
+     */
+    private fun launchGuarded(block: suspend () -> Unit) {
         viewModelScope.launch {
+            _isBusy.value = true
+            try {
+                block()
+            } catch (t: Throwable) {
+                Log.e("RoomsViewModel", "Room action failed", t)
+                _errorMessage.value = "Connection issue — check your internet and try again."
+            } finally {
+                _isBusy.value = false
+            }
+        }
+    }
+
+    fun joinRoom(roomId: String, currentTask: String, onJoined: () -> Unit) {
+        launchGuarded {
             val userId = firebaseAuthManager.ensureSignedIn()
             val name = userPreferences.displayName.first()
             val color = userPreferences.avatarColor.first()
@@ -58,17 +89,17 @@ class RoomsViewModel @Inject constructor(
     }
 
     fun leaveRoom(roomId: String) {
-        viewModelScope.launch { leaveRoomUseCase(roomId, firebaseAuthManager.ensureSignedIn()) }
+        launchGuarded { leaveRoomUseCase(roomId, firebaseAuthManager.ensureSignedIn()) }
     }
 
     fun sendReaction(roomId: String, reaction: String) {
-        viewModelScope.launch {
+        launchGuarded {
             bodyDoubleRepository.sendReaction(roomId, firebaseAuthManager.ensureSignedIn(), reaction)
         }
     }
 
     fun createRoom(name: String, type: String, sessionDurationMs: Long, onCreated: (String) -> Unit) {
-        viewModelScope.launch {
+        launchGuarded {
             val userId = firebaseAuthManager.ensureSignedIn()
             val roomId = createRoomUseCase(name, type, sessionDurationMs, userId)
             joinRoomUseCase(roomId, userPreferences.displayName.first(), userPreferences.avatarColor.first(), "", userId)

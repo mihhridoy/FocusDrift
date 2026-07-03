@@ -117,6 +117,8 @@ class TimerViewModel @Inject constructor(
 
     fun completeEarly() = timerController.completeEarly()
 
+    fun resetToIdle() = timerController.resetToIdle()
+
     fun abandon() {
         val state = uiState.value.sessionState
         val (type, planned, elapsed) = when (state) {

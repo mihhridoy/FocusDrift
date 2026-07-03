@@ -1,5 +1,6 @@
 package com.radonshadow.focusdrift.ui.screens.timer
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -57,6 +58,15 @@ fun SessionCompleteScreen(
     val complete = uiState.sessionState as? SessionState.Complete ?: run {
         onDone()
         return
+    }
+
+    // Leaving this screen any other way than "Keep going" / "Take a break" (e.g. the system back
+    // button) would otherwise leave the shared timer state stuck on this terminal Complete
+    // snapshot — the Timer tab renders nothing for that state, so it'd look like a blank/black
+    // screen the next time the user opens it.
+    BackHandler {
+        viewModel.resetToIdle()
+        onDone()
     }
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {

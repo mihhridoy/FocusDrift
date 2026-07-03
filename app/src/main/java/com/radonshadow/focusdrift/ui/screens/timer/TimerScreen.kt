@@ -73,7 +73,19 @@ fun TimerScreen(
             is SessionState.Paused -> PausedContent(state, onPauseResume = viewModel::resume, onReset = viewModel::abandon, onCompleteEarly = viewModel::completeEarly)
             is SessionState.Drifting -> DriftingContent(state, onResume = viewModel::resumeFromDrift)
             is SessionState.OnBreak -> BreakContent(state)
-            is SessionState.Complete -> Unit
+            // Complete is a one-shot snapshot for SessionCompleteScreen; the LaunchedEffect above
+            // navigates there immediately. Falling back to the idle screen here (rather than
+            // rendering nothing) means a stale/leftover Complete state can never show as a blank
+            // Timer tab, even for a single frame.
+            is SessionState.Complete -> IdleContent(
+                task = uiState.task,
+                onTaskChange = viewModel::updateTask,
+                onStart = viewModel::startFocusSession,
+                selectedFocusSoundId = uiState.selectedFocusSoundId,
+                focusSoundVolume = uiState.focusSoundVolume,
+                onFocusSoundSelected = viewModel::selectFocusSound,
+                onFocusSoundVolumeChange = viewModel::setFocusSoundVolume
+            )
         }
     }
 }

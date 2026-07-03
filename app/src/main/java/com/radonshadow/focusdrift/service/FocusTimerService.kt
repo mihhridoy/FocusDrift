@@ -132,6 +132,12 @@ class FocusTimerService : Service() {
         focusSoundPlayer.setVolume(volume)
     }
 
+    fun resetToIdle() {
+        if (_sessionState.value is SessionState.Complete) {
+            _sessionState.value = SessionState.Idle
+        }
+    }
+
     fun completeNow() {
         countDownTimer?.cancel()
         onSessionComplete()

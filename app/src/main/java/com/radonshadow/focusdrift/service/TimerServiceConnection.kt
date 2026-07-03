@@ -106,6 +106,17 @@ class TimerServiceConnection @Inject constructor(
         boundService?.setFocusSoundVolume(volume)
     }
 
+    override fun resetToIdle() {
+        // Bound-only, direct call (no startForegroundService intent) — resetToIdle() runs right
+        // after a session the user just finished, so the service is already alive and bound;
+        // going through an Intent here would risk ForegroundServiceDidNotStartInTimeException if
+        // the service had already demoted itself out of the foreground state on completion.
+        boundService?.resetToIdle()
+        if (_sessionState.value is SessionState.Complete) {
+            _sessionState.value = SessionState.Idle
+        }
+    }
+
     private fun releaseBinding() {
         if (!isBound) return
         runCatching { context.unbindService(serviceConnection) }

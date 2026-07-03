@@ -21,4 +21,13 @@ interface FocusTimerController {
     fun completeEarly()
     fun abandon()
     fun setFocusSoundVolume(volume: Float)
+
+    /**
+     * [com.radonshadow.focusdrift.domain.model.SessionState.Complete] is a terminal snapshot
+     * meant to be read once by the session-complete screen. Call this once that screen has been
+     * shown (or dismissed) so the Timer tab doesn't get stuck showing a stale Complete state
+     * (which renders as a blank screen) if the user leaves without tapping "Keep going" / "Take
+     * a break".
+     */
+    fun resetToIdle()
 }

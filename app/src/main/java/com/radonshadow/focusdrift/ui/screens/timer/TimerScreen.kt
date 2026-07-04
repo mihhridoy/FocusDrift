@@ -75,6 +75,8 @@ fun TimerScreen(
                 task = uiState.task,
                 onTaskChange = viewModel::updateTask,
                 onStart = viewModel::startFocusSession,
+                focusMinutes = uiState.focusMinutes,
+                onFocusMinutesChange = viewModel::setFocusMinutes,
                 selectedFocusSoundId = uiState.selectedFocusSoundId,
                 focusSoundVolume = uiState.focusSoundVolume,
                 onFocusSoundSelected = viewModel::selectFocusSound,
@@ -95,6 +97,8 @@ fun TimerScreen(
                 task = uiState.task,
                 onTaskChange = viewModel::updateTask,
                 onStart = viewModel::startFocusSession,
+                focusMinutes = uiState.focusMinutes,
+                onFocusMinutesChange = viewModel::setFocusMinutes,
                 selectedFocusSoundId = uiState.selectedFocusSoundId,
                 focusSoundVolume = uiState.focusSoundVolume,
                 onFocusSoundSelected = viewModel::selectFocusSound,
@@ -112,6 +116,8 @@ private fun IdleContent(
     task: String,
     onTaskChange: (String) -> Unit,
     onStart: () -> Unit,
+    focusMinutes: Int,
+    onFocusMinutesChange: (Int) -> Unit,
     selectedFocusSoundId: String,
     focusSoundVolume: Float,
     onFocusSoundSelected: (String) -> Unit,
@@ -126,7 +132,7 @@ private fun IdleContent(
         verticalArrangement = Arrangement.Center
     ) {
         FocusOrb(state = FocusOrbState.IDLE, size = 220.dp) {
-            Text("25:00", color = TextPrimary, fontFamily = DmMono, fontSize = 44.sp)
+            Text("${focusMinutes.toString().padStart(2, '0')}:00", color = TextPrimary, fontFamily = DmMono, fontSize = 44.sp)
         }
         if (!isPro) {
             Spacer(Modifier.height(14.dp))
@@ -151,6 +157,8 @@ private fun IdleContent(
             ),
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(Modifier.height(24.dp))
+        DurationPicker(focusMinutes = focusMinutes, onFocusMinutesChange = onFocusMinutesChange)
         Spacer(Modifier.height(24.dp))
         FocusSoundPicker(
             selectedFocusSoundId = selectedFocusSoundId,
@@ -184,6 +192,27 @@ private fun IdleContent(
                 fontSize = 17.sp
             )
         }
+    }
+}
+
+@Composable
+private fun DurationPicker(focusMinutes: Int, onFocusMinutesChange: (Int) -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Session length", color = TextSecondary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+            Text("$focusMinutes min", color = IndigoPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        }
+        Slider(
+            value = focusMinutes.toFloat(),
+            onValueChange = { onFocusMinutesChange(it.toInt()) },
+            valueRange = com.radonshadow.focusdrift.core.constants.TimerConstants.MIN_FOCUS_MINUTES.toFloat()..
+                com.radonshadow.focusdrift.core.constants.TimerConstants.MAX_FOCUS_MINUTES.toFloat(),
+            colors = SliderDefaults.colors(
+                thumbColor = TextPrimary,
+                activeTrackColor = IndigoPrimary,
+                inactiveTrackColor = SurfaceElevated
+            )
+        )
     }
 }
 

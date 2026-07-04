@@ -90,6 +90,10 @@ class TimerViewModel @Inject constructor(
         viewModelScope.launch { timerPreferences.setSelectedFocusSound(id) }
     }
 
+    fun setFocusMinutes(minutes: Int) {
+        viewModelScope.launch { timerPreferences.setFocusMinutes(minutes) }
+    }
+
     fun setFocusSoundVolume(volume: Float) {
         viewModelScope.launch { timerPreferences.setFocusSoundVolume(volume) }
         timerController.setFocusSoundVolume(volume)

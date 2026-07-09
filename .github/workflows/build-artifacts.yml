@@ -51,12 +51,19 @@ jobs:
         with:
           name: focusdrift-release-apk
           path: ${{ steps.sign_apk.outputs.signedReleaseFile }}
+          # Every run creates a new artifact under the same name (overwrite defaults to false),
+          # so old builds pile up and can exhaust the account's Actions storage quota. A short
+          # retention keeps that from silently blocking future uploads.
+          retention-days: 5
+          overwrite: true
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
           name: focusdrift-release-aab
           path: ${{ steps.sign_aab.outputs.signedReleaseFile }}
+          retention-days: 5
+          overwrite: true
 
   build-debug:
     runs-on: ubuntu-latest
@@ -78,3 +85,5 @@ jobs:
         with:
           name: focusdrift-debug-apk
           path: app/build/outputs/apk/debug/*.apk
+          retention-days: 5
+          overwrite: true

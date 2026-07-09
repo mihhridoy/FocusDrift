@@ -11,6 +11,7 @@ import com.radonshadow.focusdrift.core.constants.AppConstants
 import com.radonshadow.focusdrift.core.utils.NotificationUtils
 import com.radonshadow.focusdrift.data.remote.firebase.FirebaseAuthManager
 import com.radonshadow.focusdrift.worker.DailyResetWorker
+import com.radonshadow.focusdrift.worker.EngagementReminderWorker
 import com.radonshadow.focusdrift.worker.HabitReminderWorker
 import com.radonshadow.focusdrift.worker.StreakProtectionWorker
 import dagger.hilt.android.HiltAndroidApp
@@ -79,6 +80,12 @@ class FocusDriftApp : Application(), Configuration.Provider {
             HabitReminderWorker.WORK_NAME,
             ExistingPeriodicWorkPolicy.KEEP,
             PeriodicWorkRequestBuilder<HabitReminderWorker>(Duration.ofHours(1)).build()
+        )
+
+        workManager.enqueueUniquePeriodicWork(
+            EngagementReminderWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            PeriodicWorkRequestBuilder<EngagementReminderWorker>(Duration.ofHours(1)).build()
         )
 
         workManager.enqueueUniquePeriodicWork(

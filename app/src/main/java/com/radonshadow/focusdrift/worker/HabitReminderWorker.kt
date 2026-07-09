@@ -13,7 +13,12 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import java.time.LocalTime
 
-/** Runs hourly; fires a reminder for each habit whose personal reminder time has just passed and isn't done yet. */
+/**
+ * Runs hourly; reminds about each unfinished habit up to three times a day — at its reminder
+ * time, then 3 and 6 hours later — with escalating copy per round. Completing the habit stops
+ * the remaining rounds, and each round fires at most once because the worker's hourly cadence
+ * matches the one-hour detection window.
+ */
 @HiltWorker
 class HabitReminderWorker @AssistedInject constructor(
     @Assisted context: Context,
@@ -27,11 +32,16 @@ class HabitReminderWorker @AssistedInject constructor(
 
         habits.filter { it.reminderEnabled }.forEach { habit ->
             val reminderTime = LocalTime.of(habit.reminderHour, habit.reminderMinute)
-            val withinWindow = !now.isBefore(reminderTime) && now.isBefore(reminderTime.plusHours(1))
-            if (withinWindow && !habitRepository.isCompletedToday(habit.id)) {
+            val round = REMINDER_ROUND_OFFSET_HOURS.indexOfFirst { offsetHours ->
+                val windowStart = reminderTime.plusHours(offsetHours)
+                // plusHours wraps past midnight; skip wrapped rounds so a 22:00 reminder
+                // doesn't fire its follow-ups at 1am/4am.
+                windowStart >= reminderTime && !now.isBefore(windowStart) && now.isBefore(windowStart.plusHours(1))
+            }
+            if (round >= 0 && !habitRepository.isCompletedToday(habit.id)) {
                 NotificationManagerCompat.from(applicationContext).notify(
                     NOTIFICATION_ID_BASE + habit.id.toInt(),
-                    NotificationUtils.habitReminderNotification(applicationContext, habit.name)
+                    NotificationUtils.habitReminderNotification(applicationContext, habit.name, round)
                 )
             }
         }
@@ -41,5 +51,6 @@ class HabitReminderWorker @AssistedInject constructor(
     companion object {
         const val WORK_NAME = "habit_reminder_work"
         private const val NOTIFICATION_ID_BASE = 2000
+        private val REMINDER_ROUND_OFFSET_HOURS = listOf(0L, 3L, 6L)
     }
 }

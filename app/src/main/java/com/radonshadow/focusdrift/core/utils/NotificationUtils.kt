@@ -15,6 +15,7 @@ object NotificationUtils {
 
     const val CHANNEL_TIMER = "focusdrift_timer"
     const val CHANNEL_HABIT = "focusdrift_habit"
+    const val CHANNEL_ENGAGEMENT = "focusdrift_engagement"
 
     fun ensureChannels(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -38,6 +39,16 @@ object NotificationUtils {
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = context.getString(R.string.notification_channel_habit_desc)
+            }
+        )
+
+        manager.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_ENGAGEMENT,
+                "Focus reminders",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Daily focus check-ins and streak alerts"
             }
         )
     }
@@ -68,11 +79,37 @@ object NotificationUtils {
         .setContentIntent(contentIntent(context))
         .build()
 
-    fun habitReminderNotification(context: Context, habitName: String): android.app.Notification =
-        NotificationCompat.Builder(context, CHANNEL_HABIT)
+    /**
+     * Habit reminders escalate through three rounds a day (reminder time, +3h, +6h) with
+     * different copy each time, so the repeat nudges read as intentional instead of the same
+     * notification glitching in three times.
+     */
+    fun habitReminderNotification(context: Context, habitName: String, round: Int = 0): android.app.Notification {
+        val (title, text) = when (round) {
+            0 -> "Time for \"$habitName\"" to "A quick check-in now keeps your streak alive."
+            1 -> "\"$habitName\" is still waiting" to "No pressure — but today isn't over yet. You've got this."
+            else -> "Last call for \"$habitName\"" to "Your streak resets at midnight. One tap to keep it going."
+        }
+        return NotificationCompat.Builder(context, CHANNEL_HABIT)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Don't lose your streak")
-            .setContentText("\"$habitName\" is still waiting for you today.")
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(contentIntent(context))
+            .build()
+    }
+
+    /** Daily focus check-ins (morning kickoff, midday nudge, evening streak warning). */
+    fun engagementNotification(context: Context, title: String, text: String): android.app.Notification =
+        NotificationCompat.Builder(context, CHANNEL_ENGAGEMENT)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(contentIntent(context))

@@ -188,10 +188,12 @@ fun FocusOrb(
             contentAlignment = Alignment.Center
         ) {
             if (faceVisible) {
+                // High enough that the eyes clear centered overlay content (e.g. the countdown
+                // digits on the Timer tab) instead of sitting on top of it.
                 Row(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = size * 0.32f)
+                        .padding(top = size * 0.17f)
                         .offset(x = eyeShift.dp),
                     horizontalArrangement = Arrangement.spacedBy(size * 0.16f)
                 ) {

@@ -1,6 +1,9 @@
 package com.radonshadow.focusdrift.ui.screens.timer
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -130,8 +133,13 @@ private fun IdleContent(
     freeSessionCapReached: Boolean,
     onGoPro: () -> Unit
 ) {
+    // Scrollable: with the duration picker and sound picker added, the full idle layout no
+    // longer fits shorter screens, which cut off the Start Focus button entirely.
     Column(
-        modifier = Modifier.fillMaxSize().padding(30.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(30.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -242,7 +250,12 @@ private fun FocusSoundPicker(
             fontSize = 13.sp,
             modifier = Modifier.padding(bottom = 10.dp)
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Scrollable row: on narrow screens the four chips overflow the fixed width, and the
+        // last one got squeezed until its label wrapped mid-word ("Rai / n") in a stretched pill.
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.horizontalScroll(rememberScrollState())
+        ) {
             FocusSound.entries.forEach { sound ->
                 val selected = sound.id == selectedFocusSoundId
                 Box(
@@ -255,7 +268,9 @@ private fun FocusSoundPicker(
                         sound.label,
                         color = if (selected) Background else TextSecondary,
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-                        fontSize = 12.sp
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }

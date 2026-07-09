@@ -7,6 +7,9 @@ on:
       - main
       - claude/new-session-9h26z5
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -46,24 +49,29 @@ jobs:
         env:
           BUILD_TOOLS_VERSION: "34.0.0"
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: focusdrift-release-apk
-          path: ${{ steps.sign_apk.outputs.signedReleaseFile }}
-          # Every run creates a new artifact under the same name (overwrite defaults to false),
-          # so old builds pile up and can exhaust the account's Actions storage quota. A short
-          # retention keeps that from silently blocking future uploads.
-          retention-days: 5
-          overwrite: true
+      # Rename the signed outputs to stable, friendly file names before publishing.
+      - name: Stage release files
+        run: |
+          mkdir -p dist
+          cp "${{ steps.sign_apk.outputs.signedReleaseFile }}" dist/FocusDrift-release.apk
+          cp "${{ steps.sign_aab.outputs.signedReleaseFile }}" dist/FocusDrift-release.aab
 
-      - name: Upload AAB artifact
-        uses: actions/upload-artifact@v4
+      # Publish to a rolling GitHub Release instead of Actions artifacts: release assets do
+      # not count against the Actions artifact storage quota, which repeatedly filled up and
+      # made upload-artifact fail even though the build and signing succeeded.
+      - name: Publish APK & AAB to rolling release
+        uses: softprops/action-gh-release@v2
         with:
-          name: focusdrift-release-aab
-          path: ${{ steps.sign_aab.outputs.signedReleaseFile }}
-          retention-days: 5
-          overwrite: true
+          tag_name: latest-build
+          name: Latest build (auto)
+          body: |
+            Rolling release updated automatically by CI on every push.
+            - FocusDrift-release.aab — upload this to Google Play
+            - FocusDrift-release.apk — signed release APK for direct install
+          prerelease: true
+          files: |
+            dist/FocusDrift-release.apk
+            dist/FocusDrift-release.aab
 
   build-debug:
     runs-on: ubuntu-latest
@@ -80,10 +88,20 @@ jobs:
       - name: Build debug APK
         run: ./gradlew assembleDebug
 
-      - name: Upload debug APK artifact
-        uses: actions/upload-artifact@v4
+      - name: Stage debug APK
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk dist/FocusDrift-debug.apk
+
+      # Separate tag from the release job: both jobs run in parallel, and racing to create
+      # the same release on first run can fail one of them.
+      - name: Publish debug APK to rolling release
+        uses: softprops/action-gh-release@v2
         with:
-          name: focusdrift-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-          retention-days: 5
-          overwrite: true
+          tag_name: latest-debug
+          name: Latest debug build (auto)
+          body: |
+            Rolling debug build updated automatically by CI on every push.
+            FocusDrift-debug.apk has all Pro features unlocked — for testing only.
+          prerelease: true
+          files: dist/FocusDrift-debug.apk

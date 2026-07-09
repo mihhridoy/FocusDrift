@@ -82,7 +82,10 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                 )
             }
             composable(Screen.Timer.route) {
-                TimerScreen(onSessionComplete = { navController.navigate(Screen.SessionComplete.route) })
+                TimerScreen(
+                    onSessionComplete = { navController.navigate(Screen.SessionComplete.route) },
+                    onGoPro = { navController.navigate(Screen.Subscription.route) }
+                )
             }
             composable(Screen.SessionComplete.route) {
                 SessionCompleteScreen(onDone = { navController.popBackStack(Screen.Timer.route, inclusive = false) })

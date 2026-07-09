@@ -7,8 +7,12 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
@@ -16,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -88,8 +93,10 @@ private fun Color.darken(amount: Float): Color {
 }
 
 /**
- * The emotional centerpiece of the app. Pulses gently when idle, tightens and intensifies while a
- * focus session runs, dims when the user is drifting, and glows warm amber on completion.
+ * The emotional centerpiece of the app — a small cartoon mascot. Pulses gently when idle, tightens
+ * and intensifies while a focus session runs, dims and loses its face when the user is drifting,
+ * and glows warm amber on completion. The subtle head tilt and wandering eyes are what read as
+ * "alive" rather than a static glowing circle.
  */
 @Composable
 fun FocusOrb(
@@ -97,6 +104,7 @@ fun FocusOrb(
     modifier: Modifier = Modifier,
     size: Dp = 280.dp,
     orbSkin: OrbSkin = OrbSkin.DEFAULT,
+    showFace: Boolean = true,
     content: @Composable BoxScope.() -> Unit = {}
 ) {
     val palette = paletteFor(state, orbSkin)
@@ -126,7 +134,31 @@ fun FocusOrb(
         label = "orbGlow"
     )
 
+    // Slow, wide-easing sway so the mascot's head reads as gently alive, never distracting.
+    val headTilt by infiniteTransition.animateFloat(
+        initialValue = -4f,
+        targetValue = 4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(5200, easing = EaseInOutSine),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "orbHeadTilt"
+    )
+
+    // Eyes drift on their own, shorter period than the head tilt, so the motion doesn't look synced.
+    val eyeShift by infiniteTransition.animateFloat(
+        initialValue = -1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3400, easing = EaseInOutSine),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "orbEyeShift"
+    )
+
     val appliedScale = if (state == FocusOrbState.DRIFTING) 1f else pulseScale
+    val appliedTilt = if (state == FocusOrbState.DRIFTING) 0f else headTilt
+    val faceVisible = showFace && state != FocusOrbState.DRIFTING
 
     Box(modifier = modifier.size(size * 1.3f), contentAlignment = Alignment.Center) {
         repeat(3) { layer ->
@@ -148,12 +180,31 @@ fun FocusOrb(
             modifier = Modifier
                 .size(size)
                 .scale(appliedScale)
+                .rotate(appliedTilt)
                 .background(
                     brush = Brush.radialGradient(colors = palette.colors),
                     shape = CircleShape
                 ),
-            contentAlignment = Alignment.Center,
-            content = content
-        )
+            contentAlignment = Alignment.Center
+        ) {
+            if (faceVisible) {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = size * 0.32f)
+                        .offset(x = eyeShift.dp),
+                    horizontalArrangement = Arrangement.spacedBy(size * 0.16f)
+                ) {
+                    OrbEye(size * 0.1f)
+                    OrbEye(size * 0.1f)
+                }
+            }
+            content()
+        }
     }
+}
+
+@Composable
+private fun OrbEye(size: Dp) {
+    Box(modifier = Modifier.size(size).background(Color.White, CircleShape))
 }

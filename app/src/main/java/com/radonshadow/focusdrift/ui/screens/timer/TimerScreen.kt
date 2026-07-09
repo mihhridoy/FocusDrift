@@ -52,6 +52,7 @@ import com.radonshadow.focusdrift.ui.theme.TextSecondary
 @Composable
 fun TimerScreen(
     onSessionComplete: () -> Unit,
+    onGoPro: () -> Unit,
     viewModel: TimerViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -83,7 +84,8 @@ fun TimerScreen(
                 onFocusSoundVolumeChange = viewModel::setFocusSoundVolume,
                 isPro = uiState.isPro,
                 sessionsCompletedToday = uiState.sessionsCompletedToday,
-                freeSessionCapReached = uiState.freeSessionCapReached
+                freeSessionCapReached = uiState.freeSessionCapReached,
+                onGoPro = onGoPro
             )
             is SessionState.Running -> RunningContent(state, onPauseResume = viewModel::pause, onReset = viewModel::abandon, onCompleteEarly = viewModel::completeEarly, onDrift = viewModel::markDrifting)
             is SessionState.Paused -> PausedContent(state, onPauseResume = viewModel::resume, onReset = viewModel::abandon, onCompleteEarly = viewModel::completeEarly)
@@ -105,7 +107,8 @@ fun TimerScreen(
                 onFocusSoundVolumeChange = viewModel::setFocusSoundVolume,
                 isPro = uiState.isPro,
                 sessionsCompletedToday = uiState.sessionsCompletedToday,
-                freeSessionCapReached = uiState.freeSessionCapReached
+                freeSessionCapReached = uiState.freeSessionCapReached,
+                onGoPro = onGoPro
             )
         }
     }
@@ -124,7 +127,8 @@ private fun IdleContent(
     onFocusSoundVolumeChange: (Float) -> Unit,
     isPro: Boolean,
     sessionsCompletedToday: Int,
-    freeSessionCapReached: Boolean
+    freeSessionCapReached: Boolean,
+    onGoPro: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxSize().padding(30.dp),
@@ -169,24 +173,31 @@ private fun IdleContent(
         Spacer(Modifier.height(24.dp))
         if (freeSessionCapReached) {
             Text(
-                "Upgrade to Pro for unlimited focus sessions",
+                "Upgrade to Pro for unlimited focus sessions →",
                 color = AmberReward,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(bottom = 10.dp)
+                modifier = Modifier.padding(bottom = 10.dp).clickableNoRipple(onGoPro)
             )
         }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
-                .background(if (freeSessionCapReached) SurfaceElevated else IndigoPrimary, RoundedCornerShape(99.dp))
-                .clickableNoRipple(onStart),
+                .background(
+                    if (freeSessionCapReached) {
+                        androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(IndigoPrimary, AmberReward))
+                    } else {
+                        androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(IndigoPrimary, IndigoPrimary))
+                    },
+                    RoundedCornerShape(99.dp)
+                )
+                .clickableNoRipple(if (freeSessionCapReached) onGoPro else onStart),
             contentAlignment = Alignment.Center
         ) {
             Text(
-                if (freeSessionCapReached) "Daily limit reached" else "Start Focus",
-                color = if (freeSessionCapReached) TextSecondary else Background,
+                if (freeSessionCapReached) "Unlock unlimited sessions" else "Start Focus",
+                color = Background,
                 fontFamily = Nunito,
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = 17.sp

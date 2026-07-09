@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -31,6 +32,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -41,6 +43,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.radonshadow.focusdrift.core.extensions.clickableNoRipple
 import com.radonshadow.focusdrift.core.extensions.toHoursMinutesLabel
 import com.radonshadow.focusdrift.core.extensions.minutesToMillis
+import com.radonshadow.focusdrift.ui.components.FocusOrb
+import com.radonshadow.focusdrift.ui.components.FocusOrbState
 import com.radonshadow.focusdrift.ui.components.QuickStatCard
 import com.radonshadow.focusdrift.ui.components.XpProgressBar
 import com.radonshadow.focusdrift.ui.theme.AmberReward
@@ -61,60 +65,73 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Background)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 22.dp)
-            .padding(top = 10.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        TopBar(level = uiState.userProgress.level, xpIntoLevel = uiState.userProgress.xpIntoLevel, xpToNextLevel = uiState.userProgress.xpToNextLevel)
-        GoalCard(
-            sessionsToday = uiState.userProgress.sessionsToday,
-            dailyGoal = uiState.userProgress.dailyGoalSessions,
-            onStartFocus = onStartFocus
+    Box(modifier = Modifier.fillMaxSize().background(Background)) {
+        // Decorative mascot, cropped into the top-right corner, gives the home tab a branded,
+        // "someone designed this" feel instead of a flat stat list. Kept low-alpha and behind
+        // everything so it never competes with real content for attention.
+        FocusOrb(
+            state = FocusOrbState.IDLE,
+            size = 220.dp,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = 70.dp, y = (-60).dp)
+                .alpha(0.16f)
         )
 
-        if (uiState.hasActiveRoom) {
-            ActiveRoomBanner(participantCount = uiState.activeRoomParticipantCount, onJoin = onJoinRooms)
-        }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 22.dp)
+                .padding(top = 10.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            TopBar(level = uiState.userProgress.level, xpIntoLevel = uiState.userProgress.xpIntoLevel, xpToNextLevel = uiState.userProgress.xpToNextLevel)
+            GoalCard(
+                sessionsToday = uiState.userProgress.sessionsToday,
+                dailyGoal = uiState.userProgress.dailyGoalSessions,
+                onStartFocus = onStartFocus
+            )
 
-        if (uiState.habitStreaks.isNotEmpty()) {
-            Column {
-                Text("HABIT STREAKS", color = TextSecondary, fontFamily = Nunito, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Spacer(Modifier.height(10.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(uiState.habitStreaks) { summary ->
-                        HabitStreakChip(summary)
+            if (uiState.hasActiveRoom) {
+                ActiveRoomBanner(participantCount = uiState.activeRoomParticipantCount, onJoin = onJoinRooms)
+            }
+
+            if (uiState.habitStreaks.isNotEmpty()) {
+                Column {
+                    Text("HABIT STREAKS", color = TextSecondary, fontFamily = Nunito, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Spacer(Modifier.height(10.dp))
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        items(uiState.habitStreaks) { summary ->
+                            HabitStreakChip(summary)
+                        }
                     }
                 }
             }
-        }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            QuickStatCard(
-                icon = Icons.Filled.LocalFireDepartment,
-                label = "Streak",
-                value = "${uiState.userProgress.currentStreak}d",
-                valueColor = AmberReward,
-                modifier = Modifier.weight(1f)
-            )
-            QuickStatCard(
-                icon = Icons.Filled.Whatshot,
-                label = "XP today",
-                value = "${uiState.userProgress.xpEarnedToday}",
-                valueColor = IndigoPrimary,
-                modifier = Modifier.weight(1f)
-            )
-            QuickStatCard(
-                icon = Icons.Filled.Timer,
-                label = "Focus",
-                value = uiState.userProgress.focusMinutesToday.minutesToMillis().toHoursMinutesLabel(),
-                valueColor = TealRooms,
-                modifier = Modifier.weight(1f)
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                QuickStatCard(
+                    icon = Icons.Filled.LocalFireDepartment,
+                    label = "Streak",
+                    value = "${uiState.userProgress.currentStreak}d",
+                    valueColor = AmberReward,
+                    modifier = Modifier.weight(1f)
+                )
+                QuickStatCard(
+                    icon = Icons.Filled.Whatshot,
+                    label = "XP today",
+                    value = "${uiState.userProgress.xpEarnedToday}",
+                    valueColor = IndigoPrimary,
+                    modifier = Modifier.weight(1f)
+                )
+                QuickStatCard(
+                    icon = Icons.Filled.Timer,
+                    label = "Focus",
+                    value = uiState.userProgress.focusMinutesToday.minutesToMillis().toHoursMinutesLabel(),
+                    valueColor = TealRooms,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }

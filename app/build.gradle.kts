@@ -90,7 +90,11 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.database.ktx)
     implementation(libs.firebase.auth.ktx)
-    implementation(libs.firebase.analytics.ktx)
+    // firebase-analytics-ktx intentionally omitted: it was never called anywhere in the app,
+    // and its default behavior auto-merges com.google.android.gms.permission.AD_ID into the
+    // manifest and collects the advertising ID for attribution -- silently contradicting the
+    // "no advertiser data sharing" claim in PRIVACY_POLICY.md and requiring a Play Console
+    // Advertising ID declaration for a feature the app doesn't use.
 
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)

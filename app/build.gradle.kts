@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.compose.compiler)
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
 }
@@ -47,9 +48,9 @@ android {
         buildConfig = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
-    }
+    // Compose compiler is now driven by the org.jetbrains.kotlin.plugin.compose plugin
+    // (applied above, versioned with Kotlin itself) since Kotlin 2.0 -- composeOptions.
+    // kotlinCompilerExtensionVersion no longer applies and was removed.
 
     packaging {
         resources {

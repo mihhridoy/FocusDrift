@@ -8,7 +8,6 @@ import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
-import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
@@ -63,10 +62,7 @@ class SubscriptionRepositoryImpl @Inject constructor(
     private val billingClient: BillingClient? = runCatching {
         BillingClient.newBuilder(context)
             .setListener(purchasesUpdatedListener)
-            // The no-arg enablePendingPurchases() was removed in Billing Library 8+; one-time
-            // products (the Lifetime tier) are the only pending-purchase-eligible type this app
-            // sells, since subscriptions here don't use prepaid plans.
-            .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
+            .enablePendingPurchases()
             .build()
     }.onFailure { Log.e("SubscriptionRepository", "BillingClient could not be created", it) }.getOrNull()
 

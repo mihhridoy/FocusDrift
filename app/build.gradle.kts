@@ -1,10 +1,7 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.kapt)
-    alias(libs.plugins.compose.compiler)
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
 }
@@ -41,27 +38,23 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true
     }
 
-    // Compose compiler is now driven by the org.jetbrains.kotlin.plugin.compose plugin
-    // (applied above, versioned with Kotlin itself) since Kotlin 2.0 -- composeOptions.
-    // kotlinCompilerExtensionVersion no longer applies and was removed.
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.14"
+    }
 
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
-    }
-}
-
-// Kotlin 2.2+ made the string-based android.kotlinOptions.jvmTarget a hard error; the
-// replacement is this typed compilerOptions DSL on the top-level kotlin extension.
-kotlin {
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 

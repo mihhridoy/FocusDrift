@@ -9,6 +9,7 @@ import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
 import com.android.billingclient.api.PendingPurchasesParams
+import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
@@ -18,6 +19,7 @@ import com.android.billingclient.api.queryProductDetails
 import com.android.billingclient.api.queryPurchasesAsync
 import com.radonshadow.focusdrift.BuildConfig
 import com.radonshadow.focusdrift.core.constants.SubscriptionConstants
+import com.radonshadow.focusdrift.domain.model.SubscriptionPricing
 import com.radonshadow.focusdrift.domain.model.SubscriptionStatus
 import com.radonshadow.focusdrift.domain.model.SubscriptionTier
 import com.radonshadow.focusdrift.domain.repository.SubscriptionRepository
@@ -52,6 +54,7 @@ class SubscriptionRepositoryImpl @Inject constructor(
     private val status = MutableStateFlow(
         if (BuildConfig.DEBUG) SubscriptionStatus(SubscriptionTier.PRO_LIFETIME) else SubscriptionStatus(SubscriptionTier.FREE)
     )
+    private val pricing = MutableStateFlow(SubscriptionPricing())
     private var isConnected = false
 
     private val purchasesUpdatedListener = PurchasesUpdatedListener { result, purchases ->
@@ -76,7 +79,10 @@ class SubscriptionRepositoryImpl @Inject constructor(
     private suspend fun ensureConnected() {
         if (isConnected || billingClient == null) return
         isConnected = runCatching { connectBillingClient() }.getOrDefault(false)
-        if (isConnected) runCatching { refreshPurchases() }
+        if (isConnected) {
+            runCatching { refreshPurchases() }
+            runCatching { refreshPricing() }
+        }
     }
 
     private suspend fun connectBillingClient(): Boolean = suspendCancellableCoroutine { cont ->
@@ -103,6 +109,54 @@ class SubscriptionRepositoryImpl @Inject constructor(
         (subs.purchasesList + inApp.purchasesList).forEach { handlePurchase(it) }
     }
 
+    // Pulls Play's own formatted-for-the-user's-country price for every product this app
+    // sells, rather than a hardcoded display string. Showing a price that doesn't match what
+    // the native purchase sheet actually charges (e.g. a hardcoded "$8.99" for a user whose
+    // store account is billed in INR) is a Play Subscriptions policy violation.
+    private suspend fun refreshPricing() {
+        val client = billingClient ?: return
+
+        val subsParams = QueryProductDetailsParams.newBuilder()
+            .setProductList(
+                listOf(SubscriptionConstants.PRODUCT_MONTHLY, SubscriptionConstants.PRODUCT_YEARLY).map { id ->
+                    QueryProductDetailsParams.Product.newBuilder()
+                        .setProductId(id)
+                        .setProductType(BillingClient.ProductType.SUBS)
+                        .build()
+                }
+            )
+            .build()
+        val inAppParams = QueryProductDetailsParams.newBuilder()
+            .setProductList(
+                listOf(
+                    QueryProductDetailsParams.Product.newBuilder()
+                        .setProductId(SubscriptionConstants.PRODUCT_LIFETIME)
+                        .setProductType(BillingClient.ProductType.INAPP)
+                        .build()
+                )
+            )
+            .build()
+
+        val subsDetails = client.queryProductDetails(subsParams).productDetailsList.orEmpty()
+        val inAppDetails = client.queryProductDetails(inAppParams).productDetailsList.orEmpty()
+
+        pricing.value = SubscriptionPricing(
+            monthly = subsDetails.firstOrNull { it.productId == SubscriptionConstants.PRODUCT_MONTHLY }?.recurringPrice(),
+            yearly = subsDetails.firstOrNull { it.productId == SubscriptionConstants.PRODUCT_YEARLY }?.recurringPrice(),
+            lifetime = inAppDetails.firstOrNull()?.oneTimePurchaseOfferDetails?.formattedPrice
+        )
+    }
+
+    // The first pricing phase on an offer with a free trial is the $0 trial itself; the price
+    // that actually belongs on a pricing card is the recurring price users are billed after it.
+    private fun ProductDetails.recurringPrice(): String? =
+        subscriptionOfferDetails
+            ?.firstOrNull()
+            ?.pricingPhases
+            ?.pricingPhaseList
+            ?.lastOrNull()
+            ?.formattedPrice
+
     private suspend fun handlePurchase(purchase: Purchase) {
         if (purchase.purchaseState != Purchase.PurchaseState.PURCHASED) return
 
@@ -126,6 +180,8 @@ class SubscriptionRepositoryImpl @Inject constructor(
     }
 
     override fun observeSubscriptionStatus(): Flow<SubscriptionStatus> = status
+
+    override fun observePricing(): Flow<SubscriptionPricing> = pricing
 
     override suspend fun getSubscriptionStatus(): SubscriptionStatus {
         runCatching { ensureConnected() }

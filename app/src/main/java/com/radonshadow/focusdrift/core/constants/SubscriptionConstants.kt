@@ -5,10 +5,6 @@ object SubscriptionConstants {
     const val PRODUCT_YEARLY = "focusdrift_pro_yearly"
     const val PRODUCT_LIFETIME = "focusdrift_pro_lifetime"
 
-    const val PRICE_MONTHLY_DISPLAY = "$8.99"
-    const val PRICE_YEARLY_DISPLAY = "$59.99"
-    const val PRICE_LIFETIME_DISPLAY = "$129"
-
     const val FREE_TRIAL_DAYS = 7
 
     // Free tier limits

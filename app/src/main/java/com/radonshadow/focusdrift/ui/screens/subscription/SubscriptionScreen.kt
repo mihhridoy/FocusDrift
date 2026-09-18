@@ -66,6 +66,7 @@ fun SubscriptionScreen(
     viewModel: SubscriptionViewModel = hiltViewModel()
 ) {
     val status by viewModel.status.collectAsState()
+    val pricing by viewModel.pricing.collectAsState()
     val context = LocalContext.current
     val activity = context as? Activity
 
@@ -126,24 +127,27 @@ fun SubscriptionScreen(
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             PricingCard(
                 label = "Monthly",
-                price = SubscriptionConstants.PRICE_MONTHLY_DISPLAY,
+                price = pricing.monthly,
                 highlighted = false,
                 modifier = Modifier.weight(1f),
-                onClick = { activity?.let { viewModel.purchase(it, SubscriptionConstants.PRODUCT_MONTHLY) } }
+                // Guarded on the fetched price rather than just activity != null: launching a
+                // purchase before Billing has resolved a real ProductDetails risks the flow
+                // failing or, worse, briefly showing stale/wrong pricing mid-purchase.
+                onClick = { if (pricing.monthly != null) activity?.let { viewModel.purchase(it, SubscriptionConstants.PRODUCT_MONTHLY) } }
             )
             PricingCard(
                 label = "Yearly",
-                price = SubscriptionConstants.PRICE_YEARLY_DISPLAY,
+                price = pricing.yearly,
                 highlighted = true,
                 modifier = Modifier.weight(1f),
-                onClick = { activity?.let { viewModel.purchase(it, SubscriptionConstants.PRODUCT_YEARLY) } }
+                onClick = { if (pricing.yearly != null) activity?.let { viewModel.purchase(it, SubscriptionConstants.PRODUCT_YEARLY) } }
             )
             PricingCard(
                 label = "Lifetime",
-                price = SubscriptionConstants.PRICE_LIFETIME_DISPLAY,
+                price = pricing.lifetime,
                 highlighted = false,
                 modifier = Modifier.weight(1f),
-                onClick = { activity?.let { viewModel.purchase(it, SubscriptionConstants.PRODUCT_LIFETIME) } }
+                onClick = { if (pricing.lifetime != null) activity?.let { viewModel.purchase(it, SubscriptionConstants.PRODUCT_LIFETIME) } }
             )
         }
 
@@ -156,7 +160,7 @@ fun SubscriptionScreen(
                     androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(IndigoPrimary, IndigoLight)),
                     RoundedCornerShape(99.dp)
                 )
-                .clickableNoRipple { activity?.let { viewModel.startFreeTrial(it) } },
+                .clickableNoRipple { if (pricing.yearly != null) activity?.let { viewModel.startFreeTrial(it) } },
             contentAlignment = Alignment.Center
         ) {
             Text("Start 7-day free trial", color = Background, fontFamily = Nunito, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
@@ -174,7 +178,7 @@ fun SubscriptionScreen(
 }
 
 @Composable
-private fun PricingCard(label: String, price: String, highlighted: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun PricingCard(label: String, price: String?, highlighted: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
         modifier = modifier
             .background(Surface, RoundedCornerShape(16.dp))
@@ -196,7 +200,11 @@ private fun PricingCard(label: String, price: String, highlighted: Boolean, modi
             }
             Text(label, color = TextSecondary, fontSize = 12.sp)
             Spacer(Modifier.height(4.dp))
-            Text(price, color = TextPrimary, fontFamily = Nunito, fontWeight = FontWeight.Black, fontSize = 18.sp)
+            // Never fall back to a hardcoded currency here: Play's automated review checks that
+            // every price shown in the purchase flow matches what the native payment sheet
+            // actually charges in the user's own currency, so an unfetched price shows a
+            // loading dash rather than a guess.
+            Text(price ?: "···", color = TextPrimary, fontFamily = Nunito, fontWeight = FontWeight.Black, fontSize = 18.sp)
         }
     }
 }

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.radonshadow.focusdrift.core.constants.SubscriptionConstants
 import com.radonshadow.focusdrift.core.extensions.stateInViewModel
+import com.radonshadow.focusdrift.domain.model.SubscriptionPricing
 import com.radonshadow.focusdrift.domain.model.SubscriptionStatus
 import com.radonshadow.focusdrift.domain.model.SubscriptionTier
 import com.radonshadow.focusdrift.domain.repository.SubscriptionRepository
@@ -19,6 +20,9 @@ class SubscriptionViewModel @Inject constructor(
 
     val status = subscriptionRepository.observeSubscriptionStatus()
         .stateInViewModel(viewModelScope, SubscriptionStatus(SubscriptionTier.FREE))
+
+    val pricing = subscriptionRepository.observePricing()
+        .stateInViewModel(viewModelScope, SubscriptionPricing())
 
     fun purchase(activity: Activity, productId: String) {
         viewModelScope.launch { subscriptionRepository.launchPurchaseFlow(activity, productId) }

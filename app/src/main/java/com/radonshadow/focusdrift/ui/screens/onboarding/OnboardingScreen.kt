@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -189,7 +190,8 @@ private fun AvatarTrio() {
             listOf(TealRooms, IndigoPrimary, AmberReward).forEachIndexed { index, color ->
                 Box(
                     modifier = Modifier
-                        .padding(start = if (index == 0) 0.dp else (index * -14).dp)
+                        // offset, not padding: Compose throws on negative padding values.
+                        .offset(x = (index * -14).dp)
                         .size(if (index == 0) 74.dp else 64.dp)
                         .background(color, CircleShape),
                     contentAlignment = Alignment.Center

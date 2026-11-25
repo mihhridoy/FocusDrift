@@ -17,18 +17,16 @@ android {
         applicationId = "com.radonshadow.focusdrift"
         minSdk = 26
         targetSdk = 36
-        versionCode = 6
-        versionName = "1.0.5"
+        versionCode = 7
+        versionName = "1.0.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            // Temporarily disabled to isolate whether R8 shrinking is behind the crash-on-launch
-            // report on the first real device install. Re-enable once confirmed safe, with the
-            // keep rules in proguard-rules.pro in place.
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         debug {
